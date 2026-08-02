@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片转 ICO 图标</title>
+    <link rel="stylesheet" href="/static/tools.css">
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link active" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>图片转 ICO 图标</h1>
+            <p class="subtitle">将任意图片转换为 Windows / 网页可用的 ICO 图标文件</p>
+        </div>
+
+        <!-- 上传区 -->
+        <div class="upload-zone" id="uploadZone">
+            <div class="cloud-icon">&#x2191;</div>
+            <p class="main-text">点击上传或拖拽图片到此处</p>
+            <p class="sub-text">支持 png、jpg、jpeg、ico、webp 格式，单张不超过 10 MB</p>
+            <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg,image/x-icon,image/vnd.microsoft.icon,image/webp">
+        </div>
+
+        <!-- 文件信息 -->
+        <div class="file-card" id="fileCard">
+            <img id="thumbImg" alt="缩略图">
+            <div class="file-info">
+                <div class="file-name" id="fileName">-</div>
+                <div class="file-meta" id="fileMeta">-</div>
+            </div>
+            <button class="remove-btn" onclick="clearFile()">移除</button>
+        </div>
+
+        <!-- 尺寸选择 -->
+        <div class="size-panel">
+            <div class="panel-title">选择目标尺寸</div>
+            <div class="size-grid">
+                <label class="size-cell"><input type="radio" name="icoSize" value="16"><div class="cell-box"><span class="dim">16</span><span class="label">像素</span></div></label>
+                <label class="size-cell"><input type="radio" name="icoSize" value="24"><div class="cell-box"><span class="dim">24</span><span class="label">像素</span></div></label>
+                <label class="size-cell"><input type="radio" name="icoSize" value="32" checked><div class="cell-box"><span class="dim">32</span><span class="label">像素</span></div></label>
+                <label class="size-cell"><input type="radio" name="icoSize" value="48"><div class="cell-box"><span class="dim">48</span><span class="label">像素</span></div></label>
+                <label class="size-cell"><input type="radio" name="icoSize" value="64"><div class="cell-box"><span class="dim">64</span><span class="label">像素</span></div></label>
+                <label class="size-cell"><input type="radio" name="icoSize" value="128"><div class="cell-box"><span class="dim">128</span><span class="label">像素</span></div></label>
+                <label class="size-cell"><input type="radio" name="icoSize" value="256"><div class="cell-box"><span class="dim">256</span><span class="label">像素</span></div></label>
+                <label class="size-cell"><input type="radio" name="icoSize" value="custom"><div class="cell-box"><span class="dim">自定义</span><span class="label">尺寸</span></div></label>
+            </div>
+            <div class="custom-box" id="customBox">
+                <label>自定义尺寸</label>
+                <input type="number" id="customW" value="512" min="1" max="1024">
+                <span>×</span>
+                <input type="number" id="customH" value="512" min="1" max="1024">
+                <span>像素</span>
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-bar">
+            <button class="btn btn-primary" id="btnGenerate" onclick="generateIco()" disabled>生成 ICO 图标</button>
+            <button class="btn btn-secondary" onclick="clearAll()">重置</button>
+        </div>
+
+        <!-- 结果 -->
+        <div class="result-panel" id="resultPanel">
+            <div class="result-title">生成成功</div>
+            <div class="result-img-wrap">
+                <img id="resultImg" alt="ICO预览">
+            </div>
+            <div class="result-meta" id="resultMeta">-</div>
+            <button class="btn btn-primary" onclick="downloadIco()">下载 favicon.ico</button>
+        </div>
+
+        <!-- 说明 -->
+        <div class="info-section">
+            <h2>使用说明</h2>
+            <p>ICO（Icon）是一种图标文件格式，广泛用于 Windows 应用程序图标和网站收藏夹图标（Favicon）。</p>
+            <p>将生成的 <code>favicon.ico</code> 放到网站根目录，并在 HTML 的 <code>&lt;head&gt;</code> 中加入以下代码即可生效：</p>
+            <div class="code-block"><code>&lt;link rel="icon" href="/favicon.ico" type="image/x-icon"&gt;</code></div>
+            <p>系统会自动从图片中心裁剪出最大正方形区域进行缩放，以保证图标不变形。</p>
+        </div>
+    </div>
+
+    <script>
+        let currentImage = null;
+        let icoBlob = null;
+        let currentFileName = '';
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileCard = document.getElementById('fileCard');
+        const thumbImg = document.getElementById('thumbImg');
+        const fileNameEl = document.getElementById('fileName');
+        const fileMetaEl = document.getElementById('fileMeta');
+        const btnGenerate = document.getElementById('btnGenerate');
+        const resultPanel = document.getElementById('resultPanel');
+        const resultImg = document.getElementById('resultImg');
+        const resultMeta = document.getElementById('resultMeta');
+        const customBox = document.getElementById('customBox');
+
+        // 自定义尺寸显示切换
+        document.querySelectorAll('input[name="icoSize"]').forEach(r => {
+            r.addEventListener('change', () => {
+                const isCustom = document.querySelector('input[name="icoSize"]:checked').value === 'custom';
+                customBox.classList.toggle('active', isCustom);
+            });
+        });
+
+        // 点击上传
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // 文件选择
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        // 拖拽上传
+        uploadZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', e => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function handleFile(file) {
+            if (file.size > 10 * 1024 * 1024) {
+                alert('图片大小超过 10 MB 限制，请选择更小的图片');
+                return;
+            }
+            const validTypes = ['image/png','image/jpeg','image/jpg','image/x-icon','image/vnd.microsoft.icon','image/webp'];
+            if (!validTypes.includes(file.type)) {
+                alert('不支持的文件格式，请上传 png、jpg、jpeg、ico 或 webp 图片');
+                return;
+            }
+
+            currentFileName = file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImage = img;
+                    thumbImg.src = img.src;
+                    fileNameEl.textContent = file.name;
+                    fileMetaEl.textContent = img.width + ' × ' + img.height + ' 像素 · ' + formatSize(file.size);
+                    fileCard.classList.add('active');
+                    btnGenerate.disabled = false;
+                    resultPanel.classList.remove('active');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearFile() {
+            currentImage = null;
+            currentFileName = '';
+            fileInput.value = '';
+            fileCard.classList.remove('active');
+            btnGenerate.disabled = true;
+            resultPanel.classList.remove('active');
+        }
+
+        function getTargetSize() {
+            const val = document.querySelector('input[name="icoSize"]:checked').value;
+            if (val === 'custom') {
+                return {
+                    width: parseInt(document.getElementById('customW').value) || 256,
+                    height: parseInt(document.getElementById('customH').value) || 256
+                };
+            }
+            const s = parseInt(val);
+            return { width: s, height: s };
+        }
+
+        async function generateIco() {
+            if (!currentImage) {
+                alert('请先上传一张图片');
+                return;
+            }
+
+            const size = getTargetSize();
+            const canvas = document.createElement('canvas');
+            canvas.width = size.width;
+            canvas.height = size.height;
+            const ctx = canvas.getContext('2d');
+
+            // 从中心裁剪为正方形并缩放
+            const minDim = Math.min(currentImage.width, currentImage.height);
+            const sx = (currentImage.width - minDim) / 2;
+            const sy = (currentImage.height - minDim) / 2;
+            const targetMin = Math.min(size.width, size.height);
+            ctx.drawImage(currentImage, sx, sy, minDim, minDim, 0, 0, targetMin, targetMin);
+
+            // 导出 PNG
+            const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const pngData = new Uint8Array(await pngBlob.arrayBuffer());
+
+            // 组装 ICO 文件头
+            const header = new ArrayBuffer(6);
+            const hv = new DataView(header);
+            hv.setUint16(0, 0, true);
+            hv.setUint16(2, 1, true);
+            hv.setUint16(4, 1, true);
+
+            const entry = new ArrayBuffer(16);
+            const ev = new DataView(entry);
+            ev.setUint8(0, size.width > 255 ? 0 : size.width);
+            ev.setUint8(1, size.height > 255 ? 0 : size.height);
+            ev.setUint8(2, 0);
+            ev.setUint8(3, 0);
+            ev.setUint16(4, 1, true);
+            ev.setUint16(6, 32, true);
+            ev.setUint32(8, pngData.length, true);
+            ev.setUint32(12, 22, true);
+
+            const icoData = new Uint8Array(22 + pngData.length);
+            icoData.set(new Uint8Array(header), 0);
+            icoData.set(new Uint8Array(entry), 6);
+            icoData.set(pngData, 22);
+
+            icoBlob = new Blob([icoData], { type: 'image/x-icon' });
+
+            // 展示结果
+            const url = URL.createObjectURL(icoBlob);
+            resultImg.src = url;
+            resultMeta.textContent = '尺寸 ' + size.width + ' × ' + size.height + ' · 已转换为 ICO 格式';
+            resultPanel.classList.add('active');
+            resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function downloadIco() {
+            if (!icoBlob) {
+                alert('请先生成 ICO 图标');
+                return;
+            }
+            const url = URL.createObjectURL(icoBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'favicon.ico';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearAll() {
+            clearFile();
+            icoBlob = null;
+        }
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

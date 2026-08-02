@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OddNotify测试页</title>
+    <link rel="stylesheet" href="/static/tools.css">
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link active" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>通知推送</h1>
+            <p class="subtitle">通过 OddNotify 发送消息通知到多种渠道</p>
+        </div>
+
+        <div class="panel">
+            <div style="text-align:center;margin-bottom:20px;">
+                <a href="{% url 'tools/oddnotify' %}"><img src="/static/images/odd_notify.png" alt="OddNotifier" style="max-width:240px;height:auto;"></a>
+            </div>
+            <div style="text-align:center;margin-bottom:20px;">
+                <a href="https://docs.oddmeta.net/products/oddnotifier.html" style="color:var(--primary);font-size:13px;">如何使用 OddNotify？</a>
+            </div>
+
+            {% if message %}
+            <div class="message-box {% if '成功' in message %}success{% else %}error{% endif %} show">
+                {{ message }}
+            </div>
+            {% endif %}
+
+            <form id="myForm" method="post" action="{% url 'tools/oddnotify' %}">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label>类型</label>
+                    <select id="odd_notify_type" name="odd_notify_type" onchange="odd_notify_type_onchange();">
+                        <option>----请选择类型----</option>
+                        {% for key, value in odd_notify_type.items %}
+                            <option value="{{ value | safe }}">{{ key }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>配置</label>
+                    <textarea id="config" name="config" placeholder="输入你的OddNotify配置"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>标题</label>
+                    <input type="text" id="title" name="title" required placeholder="Your notifiy title">
+                </div>
+                <div class="form-group">
+                    <label>内容</label>
+                    <textarea id="content" name="content" required placeholder="Input your notify content"></textarea>
+                </div>
+                <div class="buttons">
+                    <button type="submit" class="btn btn-primary">通知</button>
+                    <button type="reset" class="btn btn-secondary">重置</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="info-section">
+            <h3>使用说明</h3>
+            <p>选择通知类型，填写 OddNotify 配置信息，输入标题和内容后点击「通知」按钮即可发送消息。</p>
+            <p>如需了解如何获取 OddNotify 配置，请查看 <a href="https://docs.oddmeta.net/products/oddnotifier.html" style="color:var(--primary);">使用文档</a>。</p>
+        </div>
+    </div>
+
+    <script>
+        function odd_notify_type_onchange() {
+            var odd_notify_type = document.getElementById("odd_notify_type").value;
+            var config = document.getElementById("config");
+            console.log("odd_notify_type: " + odd_notify_type);
+            config.innerHTML  = odd_notify_type;
+        }
+
+        function notify() {
+
+        }
+    </script>
+
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

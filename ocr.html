@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR 图片文字识别</title>
+    <link rel="stylesheet" href="/static/tools.css">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link active" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>OCR 图片文字识别</h1>
+            <p class="subtitle">从图片中提取和识别文本，支持中英文混合识别</p>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+            <div class="icon">&#128444;</div>
+            <p class="main-text">点击选择，或将图片文件拖放到此处</p>
+            <p class="sub-text">图片格式：png | jpg | jpeg | webp | bmp，图片大小不超过 10 MB</p>
+            <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp">
+        </div>
+
+        <div class="preview-area" id="previewArea">
+            <img id="previewImg" alt="图片预览">
+        </div>
+
+        <div class="action-bar">
+            <button class="btn btn-primary" id="btnRecognize" onclick="startOCR()" disabled>开始识别</button>
+            <button class="btn btn-secondary" onclick="clearAll()">清空</button>
+        </div>
+
+        <div class="loading-area" id="loadingArea">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="loading-text" id="loadingText">准备中...</div>
+        </div>
+
+        <div class="result-area" id="resultArea">
+            <div class="result-header">
+                <span class="title">识别结果</span>
+                <span class="word-count" id="wordCount">0 字</span>
+            </div>
+            <textarea id="resultText" placeholder="识别结果将显示在这里..."></textarea>
+            <div class="result-actions">
+                <button class="btn btn-secondary" onclick="copyResult()">复制识别结果</button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>说明</h2>
+            <p>OCR（Optical Character Recognition，光学字符识别）是一种将印刷体字符转换为可编辑文本的技术。它通过使用图像处理、模式识别和机器学习等技术，将印刷体文本从图像或扫描文档中提取出来，并将其转换为计算机可处理的文本格式。</p>
+            <div class="tip-box">
+                <p>首次识别时，系统需要下载中文语言包（约 10 MB），请耐心等待。识别完成后，您可以直接在文本框中编辑识别结果。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImage = null;
+        let worker = null;
+        let isWorkerReady = false;
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const previewImg = document.getElementById('previewImg');
+        const btnRecognize = document.getElementById('btnRecognize');
+        const loadingArea = document.getElementById('loadingArea');
+        const progressFill = document.getElementById('progressFill');
+        const loadingText = document.getElementById('loadingText');
+        const resultArea = document.getElementById('resultArea');
+        const resultText = document.getElementById('resultText');
+        const wordCount = document.getElementById('wordCount');
+
+        // 检查 Tesseract 库
+        if (typeof Tesseract === 'undefined') {
+            document.querySelector('.subtitle').textContent = 'OCR 引擎加载失败，请检查网络连接后刷新页面';
+            document.querySelector('.subtitle').style.color = '#e74c3c';
+        }
+
+        // 上传交互
+        uploadZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+        uploadZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', e => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (file.size > 10 * 1024 * 1024) {
+                alert('图片大小不能超过 10 MB');
+                return;
+            }
+            const validTypes = ['image/png','image/jpeg','image/jpg','image/webp','image/bmp'];
+            if (!validTypes.includes(file.type)) {
+                alert('不支持的图片格式，请上传 png、jpg、jpeg、webp 或 bmp 格式的图片');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImage = img;
+                    previewImg.src = img.src;
+                    previewArea.classList.add('active');
+                    btnRecognize.disabled = false;
+                    resultArea.classList.remove('active');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateProgress(percent, text) {
+            progressFill.style.width = Math.min(percent, 100) + '%';
+            loadingText.textContent = text;
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'creating worker': '正在初始化 OCR 引擎...',
+                'loading language traineddata': '正在下载中文语言包...',
+                'initializing api': '正在初始化识别接口...',
+                'recognizing text': '正在识别文字...',
+                'done': '识别完成'
+            };
+            return map[status] || status;
+        }
+
+        async function startOCR() {
+            if (!currentImage) {
+                alert('请先上传图片');
+                return;
+            }
+            if (typeof Tesseract === 'undefined') {
+                alert('OCR 引擎加载失败，请检查网络后刷新页面');
+                return;
+            }
+
+            btnRecognize.disabled = true;
+            loadingArea.classList.add('active');
+            resultArea.classList.remove('active');
+            updateProgress(0, '准备中...');
+
+            try {
+                if (!worker) {
+                    updateProgress(5, '正在初始化 OCR 引擎...');
+                    worker = await Tesseract.createWorker('chi_sim', 1, {
+                        logger: m => {
+                            const pct = Math.round((m.progress || 0) * 100);
+                            updateProgress(pct, getStatusText(m.status));
+                        }
+                    });
+                    isWorkerReady = true;
+                }
+
+                updateProgress(0, '正在识别文字...');
+                const { data: { text } } = await worker.recognize(currentImage.src);
+
+                resultText.value = text.trim();
+                wordCount.textContent = text.trim().length + ' 字';
+                resultArea.classList.add('active');
+                updateProgress(100, '识别完成');
+                resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            } catch (e) {
+                alert('识别失败：' + e.message);
+            } finally {
+                setTimeout(() => {
+                    loadingArea.classList.remove('active');
+                    btnRecognize.disabled = false;
+                }, 600);
+            }
+        }
+
+        function copyResult() {
+            if (!resultText.value) return;
+            resultText.select();
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            const btn = document.querySelector('.result-actions .btn');
+            const orig = btn.textContent;
+            btn.textContent = '已复制!';
+            setTimeout(() => btn.textContent = orig, 1500);
+        }
+
+        // 实时字数统计
+        resultText.addEventListener('input', function() {
+            wordCount.textContent = this.value.length + ' 字';
+        });
+
+        function clearAll() {
+            currentImage = null;
+            fileInput.value = '';
+            previewArea.classList.remove('active');
+            previewImg.src = '';
+            resultArea.classList.remove('active');
+            resultText.value = '';
+            wordCount.textContent = '0 字';
+            btnRecognize.disabled = true;
+        }
+
+        // 页面卸载时释放 worker
+        window.addEventListener('beforeunload', async () => {
+            if (worker) {
+                await worker.terminate();
+            }
+        });
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

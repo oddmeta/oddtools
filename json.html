@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON解析</title>
+    <link rel="stylesheet" href="/static/tools.css">
+</head>
+
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link active" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+    <div class="container">
+        <div class="page-header">
+            <h1>JSON 格式化工具</h1>
+            <p class="subtitle">解析、格式化并折叠展示 JSON 数据</p>
+        </div>
+
+        <div class="panel">
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="parseAndDisplayJSON()">解析并显示 JSON</button>
+            </div>
+            <div class="json-wrapper">
+                <textarea id="jsonInput" placeholder="请输入JSON字符串"></textarea>
+                <pre id="jsonOutput"></pre>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>使用说明</h3>
+            <p>在左侧输入框中粘贴 JSON 字符串，点击「解析并显示 JSON」按钮即可在右侧查看格式化后的结果。</p>
+            <p>点击 <code>+</code> / <code>-</code> 标记可以折叠或展开对应的层级。</p>
+        </div>
+    </div>
+
+    <script>
+        function parseAndDisplayJSON() {
+            const jsonInput = document.getElementById('jsonInput').value;
+            const jsonOutput = document.getElementById('jsonOutput');
+            try {
+                const parsedJSON = JSON.parse(jsonInput);
+                const html = jsonToHTML(parsedJSON);
+                jsonOutput.innerHTML = html;
+                addCollapseHandlers();
+            } catch (error) {
+                jsonOutput.textContent = '无效的JSON字符串: ' + error.message;
+            }
+        }
+
+        function jsonToHTML(json, level = 0) {
+            if (Array.isArray(json)) {
+                if (json.length === 0) {
+                    return '[]';
+                }
+                let result = '<span class="collapsible">[</span>';
+                result += '<div class="children' + (level > 0 ? ' collapsed' : '') + '">';
+                for (let i = 0; i < json.length; i++) {
+                    result += '<div style="padding-left: 20px;">';
+                    result += jsonToHTML(json[i], level + 1);
+                    if (i < json.length - 1) {
+                        result += ',';
+                    }
+                    result += '</div>';
+                }
+                result += '</div>';
+                result += ']';
+                return result;
+            } else if (typeof json === 'object' && json !== null) {
+                const keys = Object.keys(json);
+                if (keys.length === 0) {
+                    return '{}';
+                }
+                let result = '<span class="collapsible">{</span>';
+                result += '<div class="children' + (level > 0 ? ' collapsed' : '') + '">';
+                for (let i = 0; i < keys.length; i++) {
+                    const key = keys[i];
+                    result += '<div style="padding-left: 20px;">';
+                    result += '<span style="color: blue;">"' + key + '"</span>: ';
+                    result += jsonToHTML(json[key], level + 1);
+                    if (i < keys.length - 1) {
+                        result += ',';
+                    }
+                    result += '</div>';
+                }
+                result += '</div>';
+                result += '}';
+                return result;
+            } else {
+                return JSON.stringify(json);
+            }
+        }
+
+        function addCollapseHandlers() {
+            const collapsibles = document.querySelectorAll('.collapsible');
+            collapsibles.forEach(collapsible => {
+                collapsible.addEventListener('click', function () {
+                    const children = this.nextElementSibling;
+                    if (children.classList.contains('collapsed')) {
+                        children.classList.remove('collapsed');
+                        this.textContent = this.textContent.replace('+', '-');
+                    } else {
+                        children.classList.add('collapsed');
+                        this.textContent = this.textContent.replace('-', '+');
+                    }
+                });
+                if (collapsible.nextElementSibling) {
+                    collapsible.textContent = collapsible.textContent.replace('[', '+[');
+                    collapsible.textContent = collapsible.textContent.replace('{', '+{');
+                }
+            });
+        }
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+
+</html>

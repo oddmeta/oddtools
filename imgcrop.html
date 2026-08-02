@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片大小裁剪</title>
+    <link rel="stylesheet" href="/static/tools.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link active" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>图片大小裁剪</h1>
+            <p class="subtitle">将图片裁剪成指定尺寸或形状，支持证件照、电商图等常用规格</p>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+            <div class="icon">&#128247;</div>
+            <p class="main-text">点击选择，或将图片文件拖放到此处</p>
+            <p class="sub-text">图片格式：png | jpg | jpeg | webp | bmp</p>
+            <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp">
+        </div>
+
+        <div class="cropper-panel" id="cropperPanel">
+            <div class="img-container">
+                <img id="cropImage" alt="裁剪图片">
+            </div>
+        </div>
+
+        <div class="settings" id="settings">
+            <div class="form-row">
+                <label>裁剪形状</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="cropShape" value="rect" checked onchange="updateShape()"> 矩形</label>
+                    <label><input type="radio" name="cropShape" value="circle" onchange="updateShape()"> 圆形</label>
+                </div>
+            </div>
+            <div class="form-row">
+                <label for="cropSize">裁剪尺寸</label>
+                <select id="cropSize" onchange="onSizeChange()">
+                    <option value="free">自由裁剪</option>
+                    <option value="id_1">一寸 (295 × 413)</option>
+                    <option value="id_2_small">小二寸 (413 × 531)</option>
+                    <option value="id_2">二寸 (413 × 579)</option>
+                    <option value="5_inch">五寸 (1050 × 1500)</option>
+                    <option value="id_card">社保/身份证 (358 × 441)</option>
+                    <option value="exam">四六级/计算机 (144 × 192)</option>
+                    <option value="health">卫生机构 (160 × 210)</option>
+                    <option value="diploma">毕业证 (480 × 640)</option>
+                    <option value="taobao">淘宝 (800 × 800)</option>
+                    <option value="pdd">拼多多 (750 × 352)</option>
+                    <option value="custom">自定义</option>
+                </select>
+                <div class="custom-size" id="customSize">
+                    <input type="number" id="customWidth" value="300" min="1" max="5000" onchange="applySize()">
+                    <span>×</span>
+                    <input type="number" id="customHeight" value="300" min="1" max="5000" onchange="applySize()">
+                    <span>像素</span>
+                </div>
+            </div>
+            <div class="coords">
+                X: <span id="coordX">0</span> &nbsp;&nbsp;
+                Y: <span id="coordY">0</span> &nbsp;&nbsp;
+                宽: <span id="coordW">0</span> &nbsp;&nbsp;
+                高: <span id="coordH">0</span>
+            </div>
+        </div>
+
+        <div class="action-bar" id="actionBar">
+            <button class="btn btn-primary" onclick="doCrop()">裁剪并下载</button>
+            <button class="btn btn-secondary" onclick="clearAll()">清空</button>
+        </div>
+
+        <div class="info-section">
+            <h2>使用说明</h2>
+            <p>本工具基于浏览器端运行，图片不会上传到服务器，保护您的隐私安全。</p>
+            <ul>
+                <li>上传图片后，裁剪框会自动居中显示，您可以拖拽移动选区位置</li>
+                <li>选择预设尺寸后，裁剪框会按固定比例和大小锁定，仅可移动位置</li>
+                <li>选择"圆形"形状时，预览会显示为圆形，输出结果也为圆形图片</li>
+                <li>裁剪后的图片将以 PNG 格式下载，文件名为「原文件名_cropped.png」</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const presets = {
+            'id_1': { width: 295, height: 413 },
+            'id_2_small': { width: 413, height: 531 },
+            'id_2': { width: 413, height: 579 },
+            '5_inch': { width: 1050, height: 1500 },
+            'id_card': { width: 358, height: 441 },
+            'exam': { width: 144, height: 192 },
+            'health': { width: 160, height: 210 },
+            'diploma': { width: 480, height: 640 },
+            'taobao': { width: 800, height: 800 },
+            'pdd': { width: 750, height: 352 }
+        };
+
+        let cropper = null;
+        let currentFileName = '';
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const cropperPanel = document.getElementById('cropperPanel');
+        const settings = document.getElementById('settings');
+        const actionBar = document.getElementById('actionBar');
+        const customSize = document.getElementById('customSize');
+
+        // 加载本地保存的设置
+        function loadSettings() {
+            const savedShape = localStorage.getItem('imgcrop_shape');
+            const savedSize = localStorage.getItem('imgcrop_size');
+            if (savedShape) {
+                const el = document.querySelector('input[name="cropShape"][value="' + savedShape + '"]');
+                if (el) el.checked = true;
+            }
+            if (savedSize) {
+                document.getElementById('cropSize').value = savedSize;
+            }
+        }
+        loadSettings();
+
+        // 保存设置
+        function saveSettings() {
+            const shape = document.querySelector('input[name="cropShape"]:checked').value;
+            const size = document.getElementById('cropSize').value;
+            localStorage.setItem('imgcrop_shape', shape);
+            localStorage.setItem('imgcrop_size', size);
+        }
+
+        // 上传交互
+        uploadZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+        uploadZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', e => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            currentFileName = file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('cropImage');
+                img.src = e.target.result;
+                img.onload = function() {
+                    uploadZone.style.display = 'none';
+                    cropperPanel.classList.add('active');
+                    settings.classList.add('active');
+                    actionBar.classList.add('active');
+                    initCropper();
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function initCropper() {
+            const image = document.getElementById('cropImage');
+            if (cropper) cropper.destroy();
+
+            cropper = new Cropper(image, {
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 0.8,
+                cropBoxMovable: true,
+                cropBoxResizable: false,
+                toggleDragModeOnDblclick: false,
+                ready: function() {
+                    applySize();
+                    updateShape();
+                },
+                crop: function(event) {
+                    document.getElementById('coordX').textContent = Math.round(event.detail.x);
+                    document.getElementById('coordY').textContent = Math.round(event.detail.y);
+                    document.getElementById('coordW').textContent = Math.round(event.detail.width);
+                    document.getElementById('coordH').textContent = Math.round(event.detail.height);
+                }
+            });
+        }
+
+        function onSizeChange() {
+            const val = document.getElementById('cropSize').value;
+            customSize.classList.toggle('active', val === 'custom');
+            saveSettings();
+            if (cropper) applySize();
+        }
+
+        function applySize() {
+            if (!cropper) return;
+            const val = document.getElementById('cropSize').value;
+
+            if (val === 'free') {
+                cropper.setAspectRatio(NaN);
+                const canvasData = cropper.getCanvasData();
+                cropper.setCropBoxData({
+                    left: canvasData.left + canvasData.width * 0.1,
+                    top: canvasData.top + canvasData.height * 0.1,
+                    width: canvasData.width * 0.8,
+                    height: canvasData.height * 0.8
+                });
+                return;
+            }
+
+            let targetW, targetH;
+            if (val === 'custom') {
+                targetW = parseInt(document.getElementById('customWidth').value) || 300;
+                targetH = parseInt(document.getElementById('customHeight').value) || 300;
+            } else {
+                const preset = presets[val];
+                if (!preset) return;
+                targetW = preset.width;
+                targetH = preset.height;
+            }
+
+            const canvasData = cropper.getCanvasData();
+            const aspectRatio = targetW / targetH;
+
+            // 计算适配画布的缩放比例
+            const scale = Math.min(
+                canvasData.width / targetW,
+                canvasData.height / targetH,
+                1
+            );
+
+            const boxW = targetW * scale;
+            const boxH = targetH * scale;
+
+            cropper.setAspectRatio(aspectRatio);
+            cropper.setCropBoxData({
+                left: canvasData.left + (canvasData.width - boxW) / 2,
+                top: canvasData.top + (canvasData.height - boxH) / 2,
+                width: boxW,
+                height: boxH
+            });
+        }
+
+        function updateShape() {
+            saveSettings();
+            const shape = document.querySelector('input[name="cropShape"]:checked').value;
+            const viewBox = document.querySelector('.cropper-view-box');
+            const face = document.querySelector('.cropper-face');
+            if (!viewBox || !face) return;
+
+            if (shape === 'circle') {
+                viewBox.classList.add('round');
+                face.classList.add('round');
+            } else {
+                viewBox.classList.remove('round');
+                face.classList.remove('round');
+            }
+        }
+
+        function getRoundedCanvas(sourceCanvas) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const width = sourceCanvas.width;
+            const height = sourceCanvas.height;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            context.imageSmoothingEnabled = true;
+            context.drawImage(sourceCanvas, 0, 0, width, height);
+
+            context.globalCompositeOperation = 'destination-in';
+            context.beginPath();
+            context.arc(width / 2, height / 2, Math.min(width, height) / 2, 0, 2 * Math.PI);
+            context.fill();
+
+            return canvas;
+        }
+
+        function doCrop() {
+            if (!cropper) {
+                alert('请先上传图片');
+                return;
+            }
+
+            const shape = document.querySelector('input[name="cropShape"]:checked').value;
+            const croppedCanvas = cropper.getCroppedCanvas();
+
+            let finalCanvas = croppedCanvas;
+            if (shape === 'circle') {
+                finalCanvas = getRoundedCanvas(croppedCanvas);
+            }
+
+            const url = finalCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = url;
+            const baseName = currentFileName.replace(/\.[^/.]+$/, '') || 'image';
+            link.download = baseName + '_cropped.png';
+            link.click();
+        }
+
+        function clearAll() {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            fileInput.value = '';
+            currentFileName = '';
+            document.getElementById('cropImage').src = '';
+            uploadZone.style.display = 'block';
+            cropperPanel.classList.remove('active');
+            settings.classList.remove('active');
+            actionBar.classList.remove('active');
+            document.getElementById('coordX').textContent = '0';
+            document.getElementById('coordY').textContent = '0';
+            document.getElementById('coordW').textContent = '0';
+            document.getElementById('coordH').textContent = '0';
+        }
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

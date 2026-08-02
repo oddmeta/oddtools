@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频裁剪</title>
+    <link rel="stylesheet" href="/static/tools.css">
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link active" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>音频裁剪</h1>
+            <p class="subtitle">选择开始时间和结束时间，精准截取所需音频片段</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">&#9836;</div>
+            <h3>点击选择，或将音频文件拖放到此处</h3>
+            <p>音频格式：mp3 | wav | m4a | flac | ogg | aac | wma | aiff | opus<br>文件大小不超过 50 MB</p>
+            <input type="file" id="fileInput" accept="audio/*">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-icon">&#9836;</div>
+            <div class="file-meta">
+                <div class="name" id="fileName"></div>
+                <div class="detail" id="fileDetail"></div>
+            </div>
+            <button class="file-remove" id="removeFile">移除</button>
+        </div>
+
+        <div class="audio-player-wrap" id="audioWrap">
+            <label>原音频预览</label>
+            <audio id="audioPlayer" controls></audio>
+        </div>
+
+        <div class="time-section" id="timeSection">
+            <h4>裁剪设置</h4>
+            <div class="time-hint">时间格式：<code>HH:mm:ss.SSS</code>（时:分:秒.毫秒），例如 <code>00:01:30.500</code></div>
+            <div class="quick-btns">
+                <button id="btnSetStart">将当前播放位置设为开始时间</button>
+                <button id="btnSetEnd">将当前播放位置设为结束时间</button>
+                <button id="btnFull">选取完整音频</button>
+            </div>
+            <div class="time-row">
+                <div class="time-field">
+                    <label>开始时间</label>
+                    <input type="text" id="startTime" placeholder="00:00:00.000" value="00:00:00.000">
+                </div>
+                <div class="time-field">
+                    <label>结束时间</label>
+                    <input type="text" id="endTime" placeholder="00:00:00.000">
+                </div>
+            </div>
+            <div class="action-btns">
+                <button class="btn-primary" id="btnCut">开始分割</button>
+                <button class="btn-danger" id="btnClear">清空</button>
+            </div>
+            <div class="progress-wrap" id="progressWrap">
+                <div class="progress-bar"><div class="progress-bar-inner" id="progressBar"></div></div>
+                <div class="progress-text" id="progressText">正在处理...</div>
+            </div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h4>裁剪结果</h4>
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>文件名称</th>
+                        <th>文件大小</th>
+                        <th>音频</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+        </div>
+
+        <div class="info-section">
+            <h4>说明</h4>
+            <ul>
+                <li>本工具基于 Web Audio API 构建，所有音频处理操作均在您的本地设备完成，无需上传至任何服务器，确保您的音频文件隐私安全。</li>
+                <li>支持的输入格式取决于浏览器对音频格式的解码能力，常见格式如 MP3、WAV、AAC、OGG、FLAC 等一般均可正常处理。</li>
+                <li>裁剪后的音频统一输出为 <strong>WAV</strong> 格式（PCM 16bit 立体声/单声道），以确保最佳兼容性。</li>
+                <li>时间格式支持 <code>HH:mm:ss.SSS</code>，也可简写为纯秒数（如输入 <code>90.5</code> 表示 1分30秒500毫秒）。</li>
+                <li>开始时间必须小于结束时间，且结束时间不得超过音频总时长。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileDetail = document.getElementById('fileDetail');
+        const removeFile = document.getElementById('removeFile');
+        const audioWrap = document.getElementById('audioWrap');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const timeSection = document.getElementById('timeSection');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        const btnCut = document.getElementById('btnCut');
+        const btnClear = document.getElementById('btnClear');
+        const btnSetStart = document.getElementById('btnSetStart');
+        const btnSetEnd = document.getElementById('btnSetEnd');
+        const btnFull = document.getElementById('btnFull');
+        const progressWrap = document.getElementById('progressWrap');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const resultSection = document.getElementById('resultSection');
+        const resultBody = document.getElementById('resultBody');
+
+        let currentFile = null;
+        let audioBuffer = null;
+        let resultCount = 0;
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioCtx;
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 1000);
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+        }
+
+        function parseTime(str) {
+            str = str.trim();
+            if (!str) return 0;
+            if (!isNaN(parseFloat(str))) return parseFloat(str);
+            const m = str.match(/^(?:(\d+):)?(?:(\d+):)?(\d+(?:\.\d+)?)$/);
+            if (!m) return NaN;
+            let h = 0, min = 0, sec = 0;
+            if (m[2] !== undefined) { h = parseInt(m[1]); min = parseInt(m[2]); sec = parseFloat(m[3]); }
+            else if (m[1] !== undefined) { min = parseInt(m[1]); sec = parseFloat(m[3]); }
+            else { sec = parseFloat(m[3]); }
+            return h * 3600 + min * 60 + sec;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B','KB','MB','GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function writeWav(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const format = 1;
+            const bitDepth = 16;
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+            const dataLength = buffer.length * blockAlign;
+            const bufferLength = 44 + dataLength;
+            const arrayBuffer = new ArrayBuffer(bufferLength);
+            const view = new DataView(arrayBuffer);
+
+            function writeString(offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, format, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitDepth, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataLength, true);
+
+            const offset = 44;
+            const channels = [];
+            for (let c = 0; c < numChannels; c++) {
+                channels.push(buffer.getChannelData(c));
+            }
+            for (let i = 0; i < buffer.length; i++) {
+                for (let c = 0; c < numChannels; c++) {
+                    let sample = Math.max(-1, Math.min(1, channels[c][i]));
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(offset + (i * blockAlign) + (c * bytesPerSample), sample, true);
+                }
+            }
+            return arrayBuffer;
+        }
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        async function handleFile(file) {
+            if (file.size > 50 * 1024 * 1024) {
+                alert('文件大小超过 50 MB 限制');
+                return;
+            }
+            currentFile = file;
+            fileName.textContent = file.name;
+            fileDetail.textContent = formatBytes(file.size);
+            fileInfo.classList.add('show');
+            uploadArea.style.display = 'none';
+
+            const url = URL.createObjectURL(file);
+            audioPlayer.src = url;
+            audioWrap.classList.add('show');
+
+            try {
+                const ctx = getAudioContext();
+                const arrayBuffer = await file.arrayBuffer();
+                audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                const duration = audioBuffer.duration;
+                fileDetail.textContent = `${formatBytes(file.size)} · 时长 ${formatTime(duration)} · ${audioBuffer.sampleRate}Hz · ${audioBuffer.numberOfChannels}声道`;
+                endTimeInput.value = formatTime(duration);
+                timeSection.classList.add('show');
+            } catch (err) {
+                alert('音频解码失败：' + err.message);
+                resetAll();
+            }
+        }
+
+        removeFile.addEventListener('click', resetAll);
+
+        function resetAll() {
+            currentFile = null;
+            audioBuffer = null;
+            fileInfo.classList.remove('show');
+            uploadArea.style.display = 'block';
+            audioWrap.classList.remove('show');
+            audioPlayer.src = '';
+            timeSection.classList.remove('show');
+            startTimeInput.value = '00:00:00.000';
+            endTimeInput.value = '';
+            progressWrap.classList.remove('show');
+            progressBar.style.width = '0%';
+            resultSection.classList.remove('show');
+            resultBody.innerHTML = '';
+            resultCount = 0;
+            fileInput.value = '';
+        }
+
+        btnSetStart.addEventListener('click', () => {
+            if (audioPlayer.currentTime) {
+                startTimeInput.value = formatTime(audioPlayer.currentTime);
+            }
+        });
+        btnSetEnd.addEventListener('click', () => {
+            if (audioPlayer.currentTime) {
+                endTimeInput.value = formatTime(audioPlayer.currentTime);
+            }
+        });
+        btnFull.addEventListener('click', () => {
+            startTimeInput.value = '00:00:00.000';
+            if (audioBuffer) {
+                endTimeInput.value = formatTime(audioBuffer.duration);
+            }
+        });
+
+        btnCut.addEventListener('click', async () => {
+            if (!audioBuffer) return;
+            const start = parseTime(startTimeInput.value);
+            const end = parseTime(endTimeInput.value);
+            if (isNaN(start) || isNaN(end)) {
+                alert('时间格式不正确');
+                return;
+            }
+            if (start < 0 || end < 0) {
+                alert('时间不能为负数');
+                return;
+            }
+            if (start >= end) {
+                alert('结束时间必须大于开始时间');
+                return;
+            }
+            if (end > audioBuffer.duration) {
+                alert('结束时间不能超过音频总时长 ' + formatTime(audioBuffer.duration));
+                return;
+            }
+
+            btnCut.disabled = true;
+            progressWrap.classList.add('show');
+            progressBar.style.width = '30%';
+            progressText.textContent = '正在裁剪音频...';
+
+            try {
+                await new Promise(r => setTimeout(r, 50));
+                const sampleRate = audioBuffer.sampleRate;
+                const numChannels = audioBuffer.numberOfChannels;
+                const startSample = Math.floor(start * sampleRate);
+                const endSample = Math.floor(end * sampleRate);
+                const length = endSample - startSample;
+
+                const newBuffer = getAudioContext().createBuffer(numChannels, length, sampleRate);
+                for (let c = 0; c < numChannels; c++) {
+                    const oldData = audioBuffer.getChannelData(c);
+                    const newData = newBuffer.getChannelData(c);
+                    for (let i = 0; i < length; i++) {
+                        newData[i] = oldData[startSample + i];
+                    }
+                }
+
+                progressBar.style.width = '70%';
+                progressText.textContent = '正在生成 WAV 文件...';
+                await new Promise(r => setTimeout(r, 50));
+
+                const wavBuffer = writeWav(newBuffer);
+                const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+                resultCount++;
+                const baseName = currentFile.name.replace(/\.[^.]+$/, '');
+                const outName = `${baseName}_cut_${resultCount}.wav`;
+
+                addResult(outName, blob.size, blob);
+
+                progressBar.style.width = '100%';
+                progressText.textContent = '裁剪完成！';
+                setTimeout(() => {
+                    progressWrap.classList.remove('show');
+                    progressBar.style.width = '0%';
+                }, 1200);
+            } catch (err) {
+                alert('裁剪失败：' + err.message);
+                progressWrap.classList.remove('show');
+            } finally {
+                btnCut.disabled = false;
+            }
+        });
+
+        function addResult(name, size, blob) {
+            resultSection.classList.add('show');
+            const url = URL.createObjectURL(blob);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${name}</td>
+                <td>${formatBytes(size)}</td>
+                <td><audio src="${url}" controls></audio></td>
+                <td>
+                    <div class="result-actions">
+                        <button class="btn-download">下载</button>
+                        <button class="btn-delete">删除</button>
+                    </div>
+                </td>
+            `;
+            tr.querySelector('.btn-download').addEventListener('click', () => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = name;
+                a.click();
+            });
+            tr.querySelector('.btn-delete').addEventListener('click', () => {
+                URL.revokeObjectURL(url);
+                tr.remove();
+                if (resultBody.children.length === 0) {
+                    resultSection.classList.remove('show');
+                }
+            });
+            resultBody.appendChild(tr);
+        }
+
+        btnClear.addEventListener('click', resetAll);
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

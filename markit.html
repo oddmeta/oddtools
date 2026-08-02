@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小奥书签</title>
+    <link rel="stylesheet" href="/static/tools.css">
+</head>
+<body class="markit-page">
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">📝</div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">页面</div>
+                <a href="#" class="sidebar-item active">
+                    <span class="sidebar-item-icon">📄</span>
+                    <span class="sidebar-item-text">新增笔记</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">📋</span>
+                    <span class="sidebar-item-text">待办事项</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">📊</span>
+                    <span class="sidebar-item-text">学习笔记</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">📚</span>
+                    <span class="sidebar-item-text">生活笔记</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">💼</span>
+                    <span class="sidebar-item-text">未分类笔记</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">数据库</div>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">👥</span>
+                    <span class="sidebar-item-text">联系人</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">💼</span>
+                    <span class="sidebar-item-text">工作任务</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">📊</span>
+                    <span class="sidebar-item-text">项目进度</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <div class="content-header">
+                <div class="page-title">Markit 笔记</div>
+                <div class="page-meta">最后编辑于 刚刚</div>
+            </div>
+            
+            <!-- 格式化工具栏 -->
+            <div class="format-toolbar">
+                <button class="format-button" onclick="formatText('bold')">B</button>
+                <button class="format-button" onclick="formatText('italic')">I</button>
+                <button class="format-button" onclick="formatText('underline')">U</button>
+                <button class="format-button" onclick="formatText('strikeThrough')">S</button>
+                <span style="width: 8px;"></span>
+                <button class="format-button" onclick="formatText('insertUnorderedList')">• 列表</button>
+                <button class="format-button" onclick="formatText('insertOrderedList')">1. 列表</button>
+                <span style="width: 8px;"></span>
+                <button class="format-button" onclick="formatText('formatBlock', 'h1')">H1</button>
+                <button class="format-button" onclick="formatText('formatBlock', 'h2')">H2</button>
+                <button class="format-button" onclick="formatText('formatBlock', 'h3')">H3</button>
+                <button class="format-button" onclick="formatText('formatBlock', 'p')">正文</button>
+            </div>
+            
+            <!-- 编辑器区域 -->
+            <div class="content-editor">
+                <div class="editor" contenteditable="true" id="editor">
+                    <h1>欢迎使用 Markit 风格编辑器</h1>
+                    <p>这是一个简单的 Markit 风格 HTML 界面。你可以：</p>
+                    <ul>
+                        <li>使用上方的格式化工具栏</li>
+                        <li>直接在这个区域输入文本</li>
+                        <li>创建标题、列表和段落</li>
+                        <li>使用 <strong>粗体</strong>、<em>斜体</em> 等格式</li>
+                    </ul>
+                    <h2>开始书写</h2>
+                    <p>点击这里开始编辑你的内容...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 格式化文本函数
+        function formatText(command, value = null) {
+            if (value) {
+                document.execCommand(command, false, value);
+            } else {
+                document.execCommand(command, false);
+            }
+            
+            // 聚焦回到编辑器
+            document.getElementById('editor').focus();
+        }
+
+        // 侧边栏项目点击事件
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                // 移除所有活跃状态
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+                // 添加当前项目活跃状态
+                this.classList.add('active');
+            });
+        });
+
+        // 编辑器焦点事件
+        const editor = document.getElementById('editor');
+        editor.addEventListener('focus', function() {
+            console.log('编辑器已聚焦');
+        });
+
+        // 初始化编辑器内容
+        window.addEventListener('load', function() {
+            editor.focus();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicode 编码转换工具</title>
+    <link rel="stylesheet" href="/static/tools.css">
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link active" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Unicode 编码转换工具</h1>
+            <p class="subtitle">支持中文 / Unicode / ASCII 互相转换</p>
+        </div>
+
+        <div class="section">
+            <label for="inputText">输入内容</label>
+            <textarea id="inputText" placeholder="在此输入要转换的内容..."></textarea>
+        </div>
+
+        <button class="btn-swap" onclick="swapText()" title="交换输入和输出">⇅</button>
+
+        <div class="buttons">
+            <button class="btn btn-zh2uni" onclick="convert('zh2uni')">中文 → Unicode</button>
+            <button class="btn btn-uni2zh" onclick="convert('uni2zh')">Unicode → 中文</button>
+            <button class="btn btn-ascii2uni" onclick="convert('ascii2uni')">ASCII → Unicode</button>
+            <button class="btn btn-uni2ascii" onclick="convert('uni2ascii')">Unicode → ASCII</button>
+            <button class="btn btn-clear" onclick="clearAll()">清空</button>
+        </div>
+
+        <div class="section output-wrapper">
+            <label for="outputText">转换结果</label>
+            <div class="output-actions">
+                <button class="btn btn-copy" onclick="copyResult()">复制结果</button>
+            </div>
+            <textarea id="outputText" readonly placeholder="转换结果将显示在这里..."></textarea>
+        </div>
+
+        <p class="hint">提示：转换后的结果可以点击"复制结果"按钮复制到剪贴板</p>
+
+        <div class="info-section">
+            <h2>概述</h2>
+            <p>本工具提供了在线 Unicode 编码转换，可以实现中文转 Unicode，Unicode 转中文，ASCII 转 Unicode，Unicode 转 ASCII，在文本框里输入要转换的内容，然后点击要转换的类型按钮，转换完成后即可看到对应的内容。</p>
+            <p>Unicode 是一种字符编码标准，旨在统一全球各种文字、符号的表示方式，它由 Unicode 联盟制定，支持几乎所有语言的字符，并广泛应用于计算机系统中。</p>
+
+            <h3>主要特点</h3>
+            <ul>
+                <li><strong>统一编码</strong>：为每个字符分配唯一的数字（码点），涵盖字母、符号、表情等。</li>
+                <li><strong>广泛覆盖</strong>：支持全球大多数语言的字符，包括拉丁字母、汉字、阿拉伯文等。</li>
+                <li><strong>多平台兼容</strong>：适用于不同操作系统和编程语言，确保字符在不同环境下一致显示。</li>
+                <li><strong>多种编码方式</strong>：提供 UTF-8、UTF-16、UTF-32 等编码方案，适应不同需求。</li>
+            </ul>
+
+            <h3>编码方式</h3>
+            <ul>
+                <li><strong>UTF-8</strong>：变长编码，兼容 ASCII，英文字符占 1 字节，其他字符占 2-4 字节。</li>
+                <li><strong>UTF-16</strong>：变长编码，大多数字符占 2 字节，部分占 4 字节。</li>
+                <li><strong>UTF-32</strong>：定长编码，每个字符占 4 字节，处理简单但空间占用大。</li>
+            </ul>
+
+            <h3>应用场景</h3>
+            <ul>
+                <li><strong>文本处理</strong>：确保多语言文本的正确显示和存储。</li>
+                <li><strong>软件开发</strong>：支持国际化应用开发。</li>
+                <li><strong>数据交换</strong>：保证不同系统间的数据兼容性。</li>
+            </ul>
+
+            <h3>示例</h3>
+            <ul>
+                <li>字符 <code>"A"</code> 的 Unicode 码点是 <code>U+0041</code>。</li>
+                <li>汉字 <code>"中"</code> 的码点是 <code>U+4E2D</code>。</li>
+            </ul>
+
+            <div class="summary">
+                <strong>总结</strong><br>
+                Unicode 是现代计算机处理多语言文本的基础，解决了字符编码不统一的问题，广泛应用于文本处理、软件开发和数据交换等领域。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('inputText');
+        const outputEl = document.getElementById('outputText');
+
+        function convert(type) {
+            const text = inputEl.value;
+            if (!text) {
+                outputEl.value = '';
+                return;
+            }
+            try {
+                let result = '';
+                switch (type) {
+                    case 'zh2uni':
+                        result = textToUnicode(text, false);
+                        break;
+                    case 'uni2zh':
+                        result = unicodeToText(text);
+                        break;
+                    case 'ascii2uni':
+                        result = textToUnicode(text, true);
+                        break;
+                    case 'uni2ascii':
+                        result = unicodeToAscii(text);
+                        break;
+                }
+                outputEl.value = result;
+            } catch (e) {
+                outputEl.value = '转换出错：' + e.message;
+            }
+        }
+
+        // 文本转 Unicode（zh2uni 只转非 ASCII，ascii2uni 全转）
+        function textToUnicode(text, asciiOnly) {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                const code = text.charCodeAt(i);
+                if (asciiOnly) {
+                    // ASCII 转 Unicode：只处理 ASCII 范围（0-127）
+                    if (code <= 127) {
+                        result += '\\u' + code.toString(16).padStart(4, '0');
+                    } else {
+                        result += text[i];
+                    }
+                } else {
+                    // 中文转 Unicode：处理所有非 ASCII 字符（>127）
+                    if (code > 127) {
+                        result += '\\u' + code.toString(16).padStart(4, '0');
+                    } else {
+                        result += text[i];
+                    }
+                }
+            }
+            return result;
+        }
+
+        // Unicode 转文本
+        function unicodeToText(text) {
+            return text.replace(/\\u([0-9a-fA-F]{4})/g, function(match, grp) {
+                return String.fromCharCode(parseInt(grp, 16));
+            });
+        }
+
+        // Unicode 转 ASCII（只保留 ASCII 字符）
+        function unicodeToAscii(text) {
+            // 先解析 Unicode 编码
+            const decoded = unicodeToText(text);
+            // 过滤只保留 ASCII 字符（0-127）
+            let result = '';
+            for (let i = 0; i < decoded.length; i++) {
+                const code = decoded.charCodeAt(i);
+                if (code <= 127) {
+                    result += decoded[i];
+                }
+            }
+            return result;
+        }
+
+        function swapText() {
+            const temp = inputEl.value;
+            inputEl.value = outputEl.value;
+            outputEl.value = temp;
+        }
+
+        function clearAll() {
+            inputEl.value = '';
+            outputEl.value = '';
+        }
+
+        function copyResult() {
+            if (!outputEl.value) return;
+            outputEl.select();
+            document.execCommand('copy');
+            // 移除选中状态
+            window.getSelection().removeAllRanges();
+            const btn = document.querySelector('.btn-copy');
+            const original = btn.textContent;
+            btn.textContent = '已复制!';
+            setTimeout(() => btn.textContent = original, 1500);
+        }
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

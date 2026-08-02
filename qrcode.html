@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码生成工具</title>
+    <link rel="stylesheet" href="/static/tools.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link active" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>二维码生成工具</h1>
+            <p class="subtitle">支持 PNG / SVG，可嵌入 Logo，高度自定义</p>
+        </div>
+
+        <div class="main">
+            <div class="panel">
+                <h3>基础设置</h3>
+                <div class="form-row">
+                    <label for="qrText">文本内容</label>
+                    <textarea id="qrText" placeholder="在此输入要生成二维码的内容，如网址、文字、联系方式等...">https://</textarea>
+                </div>
+                <div class="form-row">
+                    <label for="qrType">图片类型</label>
+                    <select id="qrType">
+                        <option value="png" selected>PNG</option>
+                        <option value="svg">SVG</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="qrLevel">容错级别</label>
+                    <select id="qrLevel">
+                        <option value="L">L（低，约 7%）</option>
+                        <option value="M" selected>M（中，约 15%）</option>
+                        <option value="Q">Q（较高，约 25%）</option>
+                        <option value="H">H（高，约 30%）</option>
+                    </select>
+                    <div class="hint-text">如需嵌入 Logo，建议使用 H 级容错</div>
+                </div>
+                <div class="form-row">
+                    <label for="qrSize">图片尺寸（像素）</label>
+                    <input type="number" id="qrSize" value="256" min="64" max="1024">
+                </div>
+                <div class="form-row">
+                    <label for="qrMargin">图片边框（像素）</label>
+                    <input type="number" id="qrMargin" value="4" min="0" max="50">
+                    <div class="hint-text">设置为 0 表示不需要边框</div>
+                </div>
+
+                <h3 style="margin-top: 20px;">外观设置</h3>
+                <div class="form-row">
+                    <label for="qrLogo">上传 Logo（可选）</label>
+                    <input type="file" id="qrLogo" accept="image/*">
+                    <img class="logo-preview" id="logoPreview" alt="Logo预览">
+                </div>
+                <div class="form-row">
+                    <label for="qrColor">图片颜色（前景色）</label>
+                    <input type="color" id="qrColor" value="#000000">
+                </div>
+                <div class="form-row">
+                    <label for="qrBgColor">图片背景</label>
+                    <input type="color" id="qrBgColor" value="#ffffff">
+                </div>
+            </div>
+
+            <div class="panel preview-panel">
+                <h3>预览效果</h3>
+                <div class="preview-box" id="previewBox">
+                    <span class="preview-placeholder">点击"生成二维码"预览效果</span>
+                </div>
+                <div class="format-info" id="formatInfo"></div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-generate" onclick="generateQR()">生成二维码</button>
+            <button class="btn btn-download" onclick="downloadQR()" id="btnDownload" style="display:none;">下载图片</button>
+            <button class="btn btn-clear" onclick="clearAll()">清空</button>
+        </div>
+
+        <div class="info-section">
+            <h2>说明</h2>
+            <p>在线二维码生成工具，可以根据用户输入的文本，生成相应的二维码图片，支持 png 和 svg 图片格式。本工具提供了若干选项，来生成各种不同样式的二维码；另外，还支持向二维码中添加 Logo 图片。</p>
+            <p class="warn">svg 是一种矢量图格式，因此，.svg 格式的二维码，不支持设置图片尺寸和边框，也不支持为二维码添加 Logo 图片。</p>
+        </div>
+    </div>
+
+    <script>
+        let logoDataUrl = null;
+
+        const qrText = document.getElementById('qrText');
+        const qrType = document.getElementById('qrType');
+        const qrLevel = document.getElementById('qrLevel');
+        const qrSize = document.getElementById('qrSize');
+        const qrMargin = document.getElementById('qrMargin');
+        const qrLogo = document.getElementById('qrLogo');
+        const qrColor = document.getElementById('qrColor');
+        const qrBgColor = document.getElementById('qrBgColor');
+        const previewBox = document.getElementById('previewBox');
+        const logoPreview = document.getElementById('logoPreview');
+        const formatInfo = document.getElementById('formatInfo');
+        const btnDownload = document.getElementById('btnDownload');
+
+        // 检查库加载
+        if (typeof qrcode === 'undefined') {
+            document.addEventListener('DOMContentLoaded', function() {
+                previewBox.innerHTML =
+                    '<span class="preview-placeholder" style="color:#e74c3c;">二维码库加载失败，请检查网络连接后刷新页面重试</span>';
+            });
+        }
+
+        // Logo 上传处理
+        qrLogo.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                logoDataUrl = null;
+                logoPreview.classList.remove('active');
+                logoPreview.src = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                logoDataUrl = event.target.result;
+                logoPreview.src = logoDataUrl;
+                logoPreview.classList.add('active');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function generateQR() {
+            const text = qrText.value.trim();
+            if (!text) {
+                alert('请输入要生成二维码的文本内容');
+                return;
+            }
+            if (typeof qrcode === 'undefined') {
+                alert('二维码库加载失败，请检查网络后刷新页面');
+                return;
+            }
+
+            const type = qrType.value;
+            const level = qrLevel.value;
+            const width = parseInt(qrSize.value) || 256;
+            const margin = parseInt(qrMargin.value) || 0;
+            const colorDark = qrColor.value;
+            const colorLight = qrBgColor.value;
+
+            // 生成二维码数据
+            const qr = qrcode(0, level);
+            qr.addData(text);
+            qr.make();
+            const count = qr.getModuleCount();
+
+            previewBox.innerHTML = '';
+            previewBox.classList.add('has-content');
+
+            // 计算单元格大小
+            const cellSize = Math.max(1, Math.floor((width - margin * 2) / count));
+            const actualWidth = count * cellSize + margin * 2;
+
+            if (type === 'png') {
+                const canvas = document.createElement('canvas');
+                canvas.width = actualWidth;
+                canvas.height = actualWidth;
+                canvas.style.maxWidth = '100%';
+                const ctx = canvas.getContext('2d');
+
+                // 背景
+                ctx.fillStyle = colorLight;
+                ctx.fillRect(0, 0, actualWidth, actualWidth);
+
+                // 二维码图案
+                ctx.fillStyle = colorDark;
+                for (let row = 0; row < count; row++) {
+                    for (let col = 0; col < count; col++) {
+                        if (qr.isDark(row, col)) {
+                            ctx.fillRect(margin + col * cellSize, margin + row * cellSize, cellSize, cellSize);
+                        }
+                    }
+                }
+
+                previewBox.appendChild(canvas);
+
+                // 嵌入 Logo
+                if (logoDataUrl) {
+                    drawLogoOnCanvas(canvas, logoDataUrl);
+                }
+            } else {
+                // SVG
+                let rects = '';
+                for (let row = 0; row < count; row++) {
+                    for (let col = 0; col < count; col++) {
+                        if (qr.isDark(row, col)) {
+                            rects += '<rect x="' + (margin + col * cellSize) + '" y="' + (margin + row * cellSize) + '" width="' + cellSize + '" height="' + cellSize + '" fill="' + colorDark + '"/>';
+                        }
+                    }
+                }
+
+                let logoSvg = '';
+                if (logoDataUrl) {
+                    const logoSize = actualWidth * 0.18;
+                    const x = (actualWidth - logoSize) / 2;
+                    const y = (actualWidth - logoSize) / 2;
+                    logoSvg += '<rect x="' + (x - 2) + '" y="' + (y - 2) + '" width="' + (logoSize + 4) + '" height="' + (logoSize + 4) + '" fill="' + colorLight + '"/>';
+                    logoSvg += '<image href="' + logoDataUrl + '" x="' + x + '" y="' + y + '" width="' + logoSize + '" height="' + logoSize + '" preserveAspectRatio="xMidYMid slice"/>';
+                }
+
+                const svgStr = '<svg xmlns="http://www.w3.org/2000/svg" width="' + actualWidth + '" height="' + actualWidth + '" viewBox="0 0 ' + actualWidth + ' ' + actualWidth + '"><rect width="' + actualWidth + '" height="' + actualWidth + '" fill="' + colorLight + '"/>' + rects + logoSvg + '</svg>';
+                previewBox.innerHTML = svgStr;
+            }
+
+            btnDownload.style.display = 'inline-block';
+            formatInfo.textContent = '已生成 ' + type.toUpperCase() + ' 格式二维码' + (logoDataUrl ? '（已嵌入 Logo）' : '');
+        }
+
+        function drawLogoOnCanvas(canvas, logoUrl) {
+            const ctx = canvas.getContext('2d');
+            const logoImg = new Image();
+            logoImg.onload = function() {
+                const logoSize = Math.min(canvas.width, canvas.height) * 0.18;
+                const x = (canvas.width - logoSize) / 2;
+                const y = (canvas.height - logoSize) / 2;
+                ctx.fillStyle = qrBgColor.value;
+                ctx.fillRect(x - 2, y - 2, logoSize + 4, logoSize + 4);
+                ctx.drawImage(logoImg, x, y, logoSize, logoSize);
+            };
+            logoImg.src = logoUrl;
+        }
+
+        function downloadQR() {
+            const type = qrType.value;
+            if (type === 'png') {
+                const canvas = previewBox.querySelector('canvas');
+                if (!canvas) { alert('请先生成二维码'); return; }
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'qrcode.png';
+                link.click();
+            } else {
+                const svg = previewBox.querySelector('svg');
+                if (!svg) { alert('请先生成二维码'); return; }
+                const serializer = new XMLSerializer();
+                const svgStr = serializer.serializeToString(svg);
+                const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'qrcode.svg';
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        function clearAll() {
+            qrText.value = '';
+            qrLogo.value = '';
+            logoDataUrl = null;
+            logoPreview.classList.remove('active');
+            logoPreview.src = '';
+            previewBox.innerHTML = '<span class="preview-placeholder">点击"生成二维码"预览效果</span>';
+            previewBox.classList.remove('has-content');
+            btnDownload.style.display = 'none';
+            formatInfo.textContent = '';
+        }
+
+        // 回车快捷键
+        qrText.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateQR();
+            }
+        });
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

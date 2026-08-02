@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频格式转换</title>
+    <link rel="stylesheet" href="/static/tools.css">
+    <script src="/static/ffmpeg/ffmpeg.js"></script>
+    <script src="/static/ffmpeg/util.js"></script>
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link active" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>视频格式转换</h1>
+            <p class="subtitle">在各种格式之间自由转换视频</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">&#127909;</div>
+            <h3>点击选择，或将视频文件拖放到此处</h3>
+            <p>视频格式：mp4 | webm | mkv | avi | mov | flv | wmv | m4v | ts<br>文件大小不超过 200 MB</p>
+            <input type="file" id="fileInput" accept="video/*,.mp4,.webm,.mkv,.avi,.mov,.flv,.wmv,.m4v,.ts">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-icon">&#127909;</div>
+            <div class="file-meta">
+                <div class="name" id="fileName"></div>
+                <div class="detail" id="fileDetail"></div>
+            </div>
+            <button class="file-remove" id="removeFile">移除</button>
+        </div>
+
+        <div class="video-preview-wrap" id="videoWrap">
+            <label>视频预览</label>
+            <video id="videoPlayer" controls></video>
+        </div>
+
+        <div class="ffmpeg-status" id="ffmpegStatus"></div>
+
+        <div class="settings-section" id="settingsSection">
+            <h4>输出设置</h4>
+
+            <div class="setting-card">
+                <div class="setting-card-header">
+                    <label>输出格式</label>
+                    <span class="tip" data-tip="输出格式决定了导出文件的类型和兼容性">?</span>
+                </div>
+                <div class="option-group" id="formatGroup">
+                    <button class="option-btn active" data-value="mp4">MP4</button>
+                    <button class="option-btn" data-value="webm">WEBM</button>
+                    <button class="option-btn" data-value="mkv">MKV</button>
+                    <button class="option-btn" data-value="avi">AVI</button>
+                    <button class="option-btn" data-value="mov">MOV</button>
+                    <button class="option-btn" data-value="flv">FLV</button>
+                    <button class="option-btn" data-value="wmv">WMV</button>
+                    <button class="option-btn" data-value="m4v">M4V</button>
+                    <button class="option-btn" data-value="ts">TS</button>
+                </div>
+            </div>
+
+            <div id="codecSettings">
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <label>视频编码</label>
+                        <span class="tip" data-tip="视频编码决定了视频的压缩方式。H.264 兼容性最好">?</span>
+                    </div>
+                    <div class="option-group" id="vcodecGroup">
+                        <button class="option-btn active" data-value="libx264">H.264</button>
+                        <button class="option-btn" data-value="libx265">H.265</button>
+                        <button class="option-btn" data-value="libvpx-vp9">VP9</button>
+                        <button class="option-btn" data-value="libaom-av1">AV1</button>
+                    </div>
+                    <div class="codec-tip info" id="h265Tip"><strong>H.264 是默认推荐选项</strong>。H.265 比 H.264 压缩率高约 40%，但浏览器播放兼容性有限。</div>
+                    <div class="codec-tip warning" id="vp9Tip"><strong>H.264 是默认推荐选项</strong>。VP9 压缩率比 H.264 高约 45%，输出为 WebM 格式，部分播放器可能不支持。</div>
+                    <div class="codec-tip warning" id="av1Tip"><strong>H.264 是默认推荐选项</strong>。AV1 压缩率最高（约 50%），但编码速度明显更慢。</div>
+                </div>
+
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <label>音频编码</label>
+                        <span class="tip" data-tip="音频编码决定了音频的压缩方式。AAC 最为通用">?</span>
+                    </div>
+                    <div class="option-group" id="acodecGroup">
+                        <button class="option-btn active" data-value="aac">AAC</button>
+                        <button class="option-btn" data-value="libmp3lame">MP3</button>
+                        <button class="option-btn" data-value="libopus">Opus</button>
+                    </div>
+                </div>
+
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <label>音频比特率</label>
+                        <span class="tip" data-tip="音频比特率越高 = 质量越好，但文件越大">?</span>
+                    </div>
+                    <div class="option-group" id="bitrateGroup">
+                        <button class="option-btn" data-value="512k">512k</button>
+                        <button class="option-btn" data-value="320k">320k</button>
+                        <button class="option-btn" data-value="256k">256k</button>
+                        <button class="option-btn active" data-value="192k">192k</button>
+                        <button class="option-btn" data-value="128k">128k</button>
+                        <button class="option-btn" data-value="96k">96k</button>
+                        <button class="option-btn" data-value="64k">64k</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="auto-tip" id="autoTip">使用传统编码格式（视频和音频编码已自动设置以确保兼容性）。</div>
+
+            <div class="action-btns">
+                <button class="btn-primary" id="btnConvert">开始转换</button>
+                <button class="btn-danger" id="btnClear">清空</button>
+            </div>
+            <div class="progress-wrap" id="progressWrap">
+                <div class="progress-bar"><div class="progress-bar-inner" id="progressBar"></div></div>
+                <div class="progress-text" id="progressText">正在处理...</div>
+            </div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h4>转换结果</h4>
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>文件名称</th>
+                        <th>文件大小</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+        </div>
+
+        <div class="info-section">
+            <h4>说明</h4>
+            <ul>
+                <li>本工具基于 FFmpeg.wasm 构建，将业界标准的 FFmpeg 多媒体处理引擎通过 WebAssembly 技术移植到浏览器端运行。</li>
+                <li>所有视频处理操作均在您的本地设备完成，无需上传至任何服务器，确保您的视频文件隐私安全。</li>
+                <li>第一次使用此工具需要等待 FFmpeg.wasm 核心下载并加载完成（约 25 MB，根据网络情况可能需要几秒到几十秒）。</li>
+                <li>视频编码选择 H.264 可获得最佳兼容性；选择 H.265、VP9 或 AV1 可获得更小的文件体积，但兼容性可能受限。</li>
+                <li>AVI、FLV、WMV 等旧格式会自动使用兼容编码，无需手动设置。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileDetail = document.getElementById('fileDetail');
+        const removeFile = document.getElementById('removeFile');
+        const videoWrap = document.getElementById('videoWrap');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const ffmpegStatus = document.getElementById('ffmpegStatus');
+        const settingsSection = document.getElementById('settingsSection');
+        const codecSettings = document.getElementById('codecSettings');
+        const autoTip = document.getElementById('autoTip');
+        const btnConvert = document.getElementById('btnConvert');
+        const btnClear = document.getElementById('btnClear');
+        const progressWrap = document.getElementById('progressWrap');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const resultSection = document.getElementById('resultSection');
+        const resultBody = document.getElementById('resultBody');
+
+        let currentFile = null;
+        let resultCount = 0;
+        let ffmpeg = null;
+        let ffmpegLoaded = false;
+
+        const legacyFormats = ['avi', 'flv', 'wmv'];
+
+        const formatRules = {
+            mp4: { disableV: ['libvpx-vp9'], disableA: ['libopus'] },
+            webm: { disableV: ['libx264', 'libx265', 'libaom-av1'], disableA: ['aac', 'libmp3lame'] },
+            mkv: { disableV: [], disableA: [] },
+            avi: { legacy: true },
+            mov: { disableV: ['libvpx-vp9', 'libaom-av1'], disableA: ['libopus'] },
+            flv: { legacy: true },
+            wmv: { legacy: true },
+            m4v: { disableV: ['libvpx-vp9', 'libaom-av1'], disableA: ['libopus'] },
+            ts: { disableV: ['libvpx-vp9', 'libaom-av1'], disableA: ['libopus'] }
+        };
+
+        const legacyEncoders = {
+            avi: { v: 'mpeg4', a: 'libmp3lame' },
+            flv: { v: 'libx264', a: 'aac' },
+            wmv: { v: 'msmpeg4v2', a: 'wmav2' }
+        };
+
+        function setupOptionGroup(groupId) {
+            const group = document.getElementById(groupId);
+            group.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (btn.disabled) return;
+                    group.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    updateCodecTips(groupId);
+                });
+            });
+        }
+        setupOptionGroup('formatGroup');
+        setupOptionGroup('vcodecGroup');
+        setupOptionGroup('acodecGroup');
+        setupOptionGroup('bitrateGroup');
+
+        function getActiveValue(groupId) {
+            return document.querySelector(`#${groupId} .option-btn.active`).dataset.value;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B','KB','MB','GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function updateCodecTips(groupId) {
+            document.getElementById('h265Tip').classList.remove('show');
+            document.getElementById('vp9Tip').classList.remove('show');
+            document.getElementById('av1Tip').classList.remove('show');
+            if (groupId === 'vcodecGroup') {
+                const v = getActiveValue('vcodecGroup');
+                if (v === 'libx265') document.getElementById('h265Tip').classList.add('show');
+                if (v === 'libvpx-vp9') document.getElementById('vp9Tip').classList.add('show');
+                if (v === 'libaom-av1') document.getElementById('av1Tip').classList.add('show');
+            }
+        }
+
+        function applyFormatRules() {
+            const fmt = getActiveValue('formatGroup');
+            const rule = formatRules[fmt];
+            if (rule.legacy) {
+                codecSettings.style.display = 'none';
+                autoTip.classList.add('show');
+                return;
+            }
+            codecSettings.style.display = 'block';
+            autoTip.classList.remove('show');
+
+            document.querySelectorAll('#vcodecGroup .option-btn').forEach(btn => {
+                const disabled = rule.disableV.includes(btn.dataset.value);
+                btn.disabled = disabled;
+                if (disabled && btn.classList.contains('active')) {
+                    btn.classList.remove('active');
+                    document.querySelector('#vcodecGroup .option-btn:not(:disabled)').classList.add('active');
+                }
+            });
+            document.querySelectorAll('#acodecGroup .option-btn').forEach(btn => {
+                const disabled = rule.disableA.includes(btn.dataset.value);
+                btn.disabled = disabled;
+                if (disabled && btn.classList.contains('active')) {
+                    btn.classList.remove('active');
+                    document.querySelector('#acodecGroup .option-btn:not(:disabled)').classList.add('active');
+                }
+            });
+            updateCodecTips('vcodecGroup');
+        }
+
+        document.getElementById('formatGroup').querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTimeout(applyFormatRules, 0);
+            });
+        });
+
+        async function initFFmpeg() {
+            if (ffmpegLoaded) return;
+            ffmpegStatus.classList.add('show');
+            ffmpegStatus.textContent = '正在加载 FFmpeg 核心...';
+            try {
+                const { FFmpeg } = FFmpegWASM;
+                const { fetchFile } = FFmpegUtil;
+                ffmpeg = new FFmpeg();
+                ffmpeg.on('log', ({ message }) => {
+                    console.log('[FFmpeg]', message);
+                });
+                ffmpeg.on('progress', ({ progress }) => {
+                    const pct = Math.round(progress * 100);
+                    progressBar.style.width = pct + '%';
+                    progressText.textContent = `处理进度：${pct}%`;
+                });
+                await ffmpeg.load({
+                    coreURL: '/static/ffmpeg/ffmpeg-core.js',
+                    wasmURL: '/static/ffmpeg/ffmpeg-core.wasm'
+                });
+                ffmpeg.fetchFile = fetchFile;
+                ffmpegLoaded = true;
+                ffmpegStatus.textContent = 'FFmpeg 核心已加载完成';
+                setTimeout(() => ffmpegStatus.classList.remove('show'), 2000);
+            } catch (err) {
+                ffmpegStatus.textContent = 'FFmpeg 加载失败：' + err.message;
+                throw err;
+            }
+        }
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        async function handleFile(file) {
+            if (file.size > 200 * 1024 * 1024) {
+                alert('文件大小超过 200 MB 限制');
+                return;
+            }
+            currentFile = file;
+            fileName.textContent = file.name;
+            fileDetail.textContent = formatBytes(file.size);
+            fileInfo.classList.add('show');
+            uploadArea.style.display = 'none';
+
+            const url = URL.createObjectURL(file);
+            videoPlayer.src = url;
+            videoWrap.classList.add('show');
+
+            videoPlayer.onloadedmetadata = () => {
+                fileDetail.textContent = `${formatBytes(file.size)} · 时长 ${formatTime(videoPlayer.duration)}`;
+            };
+
+            settingsSection.classList.add('show');
+            applyFormatRules();
+
+            try {
+                await initFFmpeg();
+            } catch (err) {
+                console.error('FFmpeg init error:', err);
+            }
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        removeFile.addEventListener('click', resetAll);
+
+        function resetAll() {
+            currentFile = null;
+            fileInfo.classList.remove('show');
+            uploadArea.style.display = 'block';
+            videoWrap.classList.remove('show');
+            videoPlayer.src = '';
+            videoPlayer.onloadedmetadata = null;
+            settingsSection.classList.remove('show');
+            progressWrap.classList.remove('show');
+            progressBar.style.width = '0%';
+            resultSection.classList.remove('show');
+            resultBody.innerHTML = '';
+            resultCount = 0;
+            fileInput.value = '';
+        }
+
+        btnConvert.addEventListener('click', async () => {
+            if (!currentFile || !ffmpegLoaded) {
+                if (!ffmpegLoaded) {
+                    alert('FFmpeg 尚未加载完成，请稍后再试');
+                    try { await initFFmpeg(); } catch(e) {}
+                }
+                return;
+            }
+
+            const fmt = getActiveValue('formatGroup');
+            const bitrate = getActiveValue('bitrateGroup');
+            const isLegacy = legacyFormats.includes(fmt);
+
+            btnConvert.disabled = true;
+            progressWrap.classList.add('show');
+            progressBar.style.width = '5%';
+            progressText.textContent = '正在读取视频文件...';
+
+            try {
+                const inputName = 'input' + currentFile.name.substring(currentFile.name.lastIndexOf('.'));
+                const outputName = 'output.' + fmt;
+
+                progressBar.style.width = '15%';
+                progressText.textContent = '正在写入文件...';
+                await ffmpeg.writeFile(inputName, await ffmpeg.fetchFile(currentFile));
+
+                progressBar.style.width = '25%';
+                progressText.textContent = '正在转换视频格式...';
+
+                let args;
+                if (isLegacy) {
+                    const enc = legacyEncoders[fmt];
+                    args = ['-i', inputName, '-c:v', enc.v, '-c:a', enc.a];
+                    if (fmt === 'flv') args.push('-ar', '44100');
+                    args.push(outputName);
+                } else {
+                    const vcodec = getActiveValue('vcodecGroup');
+                    const acodec = getActiveValue('acodecGroup');
+                    args = ['-i', inputName, '-c:v', vcodec, '-c:a', acodec, '-b:a', bitrate];
+                    if (fmt === 'webm' && vcodec === 'libvpx-vp9') {
+                        args.push('-row-mt', '1');
+                    }
+                    args.push(outputName);
+                }
+
+                await ffmpeg.exec(args);
+
+                progressBar.style.width = '90%';
+                progressText.textContent = '正在读取结果...';
+
+                const data = await ffmpeg.readFile(outputName);
+                const blob = new Blob([data.buffer], { type: `video/${fmt}` });
+
+                await ffmpeg.deleteFile(inputName);
+                await ffmpeg.deleteFile(outputName);
+
+                resultCount++;
+                const baseName = currentFile.name.replace(/\.[^.]+$/, '');
+                const outName = `${baseName}_converted_${resultCount}.${fmt}`;
+
+                addResult(outName, blob.size, blob);
+
+                progressBar.style.width = '100%';
+                progressText.textContent = '转换完成！';
+                setTimeout(() => {
+                    progressWrap.classList.remove('show');
+                    progressBar.style.width = '0%';
+                }, 1200);
+            } catch (err) {
+                alert('转换失败：' + err.message);
+                progressWrap.classList.remove('show');
+            } finally {
+                btnConvert.disabled = false;
+            }
+        });
+
+        function addResult(name, size, blob) {
+            resultSection.classList.add('show');
+            const url = URL.createObjectURL(blob);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${name}</td>
+                <td>${formatBytes(size)}</td>
+                <td>
+                    <div class="result-actions">
+                        <button class="btn-download">下载</button>
+                        <button class="btn-delete">删除</button>
+                    </div>
+                </td>
+            `;
+            tr.querySelector('.btn-download').addEventListener('click', () => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = name;
+                a.click();
+            });
+            tr.querySelector('.btn-delete').addEventListener('click', () => {
+                URL.revokeObjectURL(url);
+                tr.remove();
+                if (resultBody.children.length === 0) {
+                    resultSection.classList.remove('show');
+                }
+            });
+            resultBody.appendChild(tr);
+        }
+
+        btnClear.addEventListener('click', resetAll);
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

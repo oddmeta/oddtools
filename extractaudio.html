@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频提取</title>
+    <link rel="stylesheet" href="/static/tools.css">
+    <script src="/static/ffmpeg/ffmpeg.js"></script>
+    <script src="/static/ffmpeg/util.js"></script>
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link active" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>音频提取</h1>
+            <p class="subtitle">从视频中提取音频轨道</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">&#127909;</div>
+            <h3>点击选择，或将视频文件拖放到此处</h3>
+            <p>视频格式：mp4 | webm | mkv | avi | mov | flv | wmv | m4v | ts<br>文件大小不超过 200 MB</p>
+            <input type="file" id="fileInput" accept="video/*,.mp4,.webm,.mkv,.avi,.mov,.flv,.wmv,.m4v,.ts">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-icon">&#127909;</div>
+            <div class="file-meta">
+                <div class="name" id="fileName"></div>
+                <div class="detail" id="fileDetail"></div>
+            </div>
+            <button class="file-remove" id="removeFile">移除</button>
+        </div>
+
+        <div class="video-preview-wrap" id="videoWrap">
+            <label>视频预览</label>
+            <video id="videoPlayer" controls></video>
+        </div>
+
+        <div class="ffmpeg-status" id="ffmpegStatus"></div>
+
+        <div class="settings-section" id="settingsSection">
+            <h4>裁剪设置（可选）</h4>
+            <div class="time-hint">时间格式：<code>HH:mm:ss.SSS</code>（时:分:秒.毫秒），例如 <code>00:01:30.500</code></div>
+            <div class="quick-btns">
+                <button id="btnSetStart">将当前播放位置设为开始时间</button>
+                <button id="btnSetEnd">将当前播放位置设为结束时间</button>
+                <button id="btnFull">选取完整视频</button>
+            </div>
+            <div class="time-row">
+                <div class="time-field">
+                    <label>开始时间</label>
+                    <input type="text" id="startTime" placeholder="00:00:00.000" value="00:00:00.000">
+                </div>
+                <div class="time-field">
+                    <label>结束时间</label>
+                    <input type="text" id="endTime" placeholder="00:00:00.000">
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-card-header">
+                    <label>输出格式</label>
+                    <span class="tip" data-tip="输出格式决定了导出文件的类型和兼容性">?</span>
+                </div>
+                <div class="option-group" id="formatGroup">
+                    <button class="option-btn active" data-value="mp3">MP3</button>
+                    <button class="option-btn" data-value="wav">WAV</button>
+                    <button class="option-btn" data-value="flac">FLAC</button>
+                    <button class="option-btn" data-value="aac">AAC</button>
+                    <button class="option-btn" data-value="ogg">OGG</button>
+                    <button class="option-btn" data-value="wma">WMA</button>
+                    <button class="option-btn" data-value="m4a">M4A</button>
+                    <button class="option-btn" data-value="opus">OPUS</button>
+                    <button class="option-btn" data-value="aiff">AIFF</button>
+                    <button class="option-btn" data-value="ac3">AC3</button>
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-card-header">
+                    <label>音频比特率</label>
+                    <span class="tip" data-tip="比特率越高 = 音质越好，但文件越大">?</span>
+                </div>
+                <div class="option-group" id="bitrateGroup">
+                    <button class="option-btn" data-value="320k">320k</button>
+                    <button class="option-btn" data-value="256k">256k</button>
+                    <button class="option-btn active" data-value="192k">192k</button>
+                    <button class="option-btn" data-value="128k">128k</button>
+                    <button class="option-btn" data-value="96k">96k</button>
+                    <button class="option-btn" data-value="64k">64k</button>
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-card-header">
+                    <label>声道</label>
+                    <span class="tip" data-tip="单声道 = 1 声道，立体声 = 2 声道">?</span>
+                </div>
+                <div class="option-group" id="channelGroup">
+                    <button class="option-btn active" data-value="2">立体声</button>
+                    <button class="option-btn" data-value="1">单声道</button>
+                </div>
+            </div>
+
+            <div class="action-btns">
+                <button class="btn-primary" id="btnExtract">开始提取</button>
+                <button class="btn-danger" id="btnClear">清空</button>
+            </div>
+            <div class="progress-wrap" id="progressWrap">
+                <div class="progress-bar"><div class="progress-bar-inner" id="progressBar"></div></div>
+                <div class="progress-text" id="progressText">正在处理...</div>
+            </div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h4>提取结果</h4>
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>文件名称</th>
+                        <th>文件大小</th>
+                        <th>音频预览</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+        </div>
+
+        <div class="info-section">
+            <h4>说明</h4>
+            <ul>
+                <li>本工具基于 FFmpeg.wasm 构建，将业界标准的 FFmpeg 多媒体处理引擎通过 WebAssembly 技术移植到浏览器端运行。</li>
+                <li>所有音频处理操作均在您的本地设备完成，无需上传至任何服务器，确保您的音视频文件隐私安全。</li>
+                <li>第一次使用此工具需要等待 FFmpeg.wasm 核心下载并加载完成（约 25 MB，根据网络情况可能需要几秒到几十秒）。</li>
+                <li>时间格式支持 <code>HH:mm:ss.SSS</code>，也可简写为纯秒数（如输入 <code>90.5</code> 表示 1分30秒500毫秒）。</li>
+                <li>开始时间必须小于结束时间，且结束时间不得超过视频总时长。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileDetail = document.getElementById('fileDetail');
+        const removeFile = document.getElementById('removeFile');
+        const videoWrap = document.getElementById('videoWrap');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const ffmpegStatus = document.getElementById('ffmpegStatus');
+        const settingsSection = document.getElementById('settingsSection');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        const btnExtract = document.getElementById('btnExtract');
+        const btnClear = document.getElementById('btnClear');
+        const btnSetStart = document.getElementById('btnSetStart');
+        const btnSetEnd = document.getElementById('btnSetEnd');
+        const btnFull = document.getElementById('btnFull');
+        const progressWrap = document.getElementById('progressWrap');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const resultSection = document.getElementById('resultSection');
+        const resultBody = document.getElementById('resultBody');
+
+        let currentFile = null;
+        let videoDuration = 0;
+        let resultCount = 0;
+        let ffmpeg = null;
+        let ffmpegLoaded = false;
+
+        const formatEncoders = {
+            mp3: 'libmp3lame', wav: 'pcm_s16le', flac: 'flac',
+            aac: 'aac', ogg: 'libvorbis', wma: 'wmav2',
+            m4a: 'aac', opus: 'libopus', aiff: 'pcm_s16be', ac3: 'ac3'
+        };
+
+        function setupOptionGroup(groupId) {
+            const group = document.getElementById(groupId);
+            group.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    group.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+        }
+        setupOptionGroup('formatGroup');
+        setupOptionGroup('bitrateGroup');
+        setupOptionGroup('channelGroup');
+
+        function getActiveValue(groupId) {
+            return document.querySelector(`#${groupId} .option-btn.active`).dataset.value;
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 1000);
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+        }
+
+        function parseTime(str) {
+            str = str.trim();
+            if (!str) return 0;
+            if (!isNaN(parseFloat(str))) return parseFloat(str);
+            const m = str.match(/^(?:(\d+):)?(?:(\d+):)?(\d+(?:\.\d+)?)$/);
+            if (!m) return NaN;
+            let h = 0, min = 0, sec = 0;
+            if (m[2] !== undefined) { h = parseInt(m[1]); min = parseInt(m[2]); sec = parseFloat(m[3]); }
+            else if (m[1] !== undefined) { min = parseInt(m[1]); sec = parseFloat(m[3]); }
+            else { sec = parseFloat(m[3]); }
+            return h * 3600 + min * 60 + sec;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B','KB','MB','GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function initFFmpeg() {
+            if (ffmpegLoaded) return;
+            ffmpegStatus.classList.add('show');
+            ffmpegStatus.textContent = '正在加载 FFmpeg 核心...';
+            try {
+                const { FFmpeg } = FFmpegWASM;
+                const { fetchFile } = FFmpegUtil;
+                ffmpeg = new FFmpeg();
+                ffmpeg.on('log', ({ message }) => {
+                    console.log('[FFmpeg]', message);
+                });
+                ffmpeg.on('progress', ({ progress }) => {
+                    const pct = Math.round(progress * 100);
+                    progressBar.style.width = pct + '%';
+                    progressText.textContent = `处理进度：${pct}%`;
+                });
+                await ffmpeg.load({
+                    coreURL: '/static/ffmpeg/ffmpeg-core.js',
+                    wasmURL: '/static/ffmpeg/ffmpeg-core.wasm'
+                });
+                ffmpeg.fetchFile = fetchFile;
+                ffmpegLoaded = true;
+                ffmpegStatus.textContent = 'FFmpeg 核心已加载完成';
+                setTimeout(() => ffmpegStatus.classList.remove('show'), 2000);
+            } catch (err) {
+                ffmpegStatus.textContent = 'FFmpeg 加载失败：' + err.message;
+                throw err;
+            }
+        }
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        async function handleFile(file) {
+            if (file.size > 200 * 1024 * 1024) {
+                alert('文件大小超过 200 MB 限制');
+                return;
+            }
+            currentFile = file;
+            fileName.textContent = file.name;
+            fileDetail.textContent = formatBytes(file.size);
+            fileInfo.classList.add('show');
+            uploadArea.style.display = 'none';
+
+            const url = URL.createObjectURL(file);
+            videoPlayer.src = url;
+            videoWrap.classList.add('show');
+
+            videoPlayer.onloadedmetadata = () => {
+                videoDuration = videoPlayer.duration;
+                fileDetail.textContent = `${formatBytes(file.size)} · 时长 ${formatTime(videoDuration)}`;
+                endTimeInput.value = formatTime(videoDuration);
+                settingsSection.classList.add('show');
+            };
+
+            try {
+                await initFFmpeg();
+            } catch (err) {
+                console.error('FFmpeg init error:', err);
+            }
+        }
+
+        removeFile.addEventListener('click', resetAll);
+
+        function resetAll() {
+            currentFile = null;
+            videoDuration = 0;
+            fileInfo.classList.remove('show');
+            uploadArea.style.display = 'block';
+            videoWrap.classList.remove('show');
+            videoPlayer.src = '';
+            videoPlayer.onloadedmetadata = null;
+            settingsSection.classList.remove('show');
+            startTimeInput.value = '00:00:00.000';
+            endTimeInput.value = '';
+            progressWrap.classList.remove('show');
+            progressBar.style.width = '0%';
+            resultSection.classList.remove('show');
+            resultBody.innerHTML = '';
+            resultCount = 0;
+            fileInput.value = '';
+        }
+
+        btnSetStart.addEventListener('click', () => {
+            if (videoPlayer.currentTime) {
+                startTimeInput.value = formatTime(videoPlayer.currentTime);
+            }
+        });
+        btnSetEnd.addEventListener('click', () => {
+            if (videoPlayer.currentTime) {
+                endTimeInput.value = formatTime(videoPlayer.currentTime);
+            }
+        });
+        btnFull.addEventListener('click', () => {
+            startTimeInput.value = '00:00:00.000';
+            if (videoDuration) {
+                endTimeInput.value = formatTime(videoDuration);
+            }
+        });
+
+        btnExtract.addEventListener('click', async () => {
+            if (!currentFile || !ffmpegLoaded) {
+                if (!ffmpegLoaded) {
+                    alert('FFmpeg 尚未加载完成，请稍后再试');
+                    try { await initFFmpeg(); } catch(e) {}
+                }
+                return;
+            }
+
+            const start = parseTime(startTimeInput.value);
+            const end = parseTime(endTimeInput.value);
+            if (isNaN(start) || isNaN(end)) {
+                alert('时间格式不正确');
+                return;
+            }
+            if (start < 0 || end < 0) {
+                alert('时间不能为负数');
+                return;
+            }
+            if (start >= end) {
+                alert('结束时间必须大于开始时间');
+                return;
+            }
+            if (end > videoDuration) {
+                alert('结束时间不能超过视频总时长 ' + formatTime(videoDuration));
+                return;
+            }
+
+            const fmt = getActiveValue('formatGroup');
+            const bitrate = getActiveValue('bitrateGroup');
+            const channels = getActiveValue('channelGroup');
+            const encoder = formatEncoders[fmt];
+
+            btnExtract.disabled = true;
+            progressWrap.classList.add('show');
+            progressBar.style.width = '5%';
+            progressText.textContent = '正在读取视频文件...';
+
+            try {
+                const inputName = 'input' + currentFile.name.substring(currentFile.name.lastIndexOf('.'));
+                const outputName = 'output.' + fmt;
+
+                progressBar.style.width = '15%';
+                progressText.textContent = '正在写入文件...';
+                await ffmpeg.writeFile(inputName, await ffmpeg.fetchFile(currentFile));
+
+                progressBar.style.width = '25%';
+                progressText.textContent = '正在提取音频...';
+
+                const args = ['-i', inputName, '-vn', '-c:a', encoder, '-b:a', bitrate, '-ac', channels];
+                if (fmt === 'wav' || fmt === 'aiff') {
+                    args.splice(args.indexOf('-b:a'), 2);
+                }
+                if (start > 0) { args.push('-ss', startTimeInput.value); }
+                if (end < videoDuration) { args.push('-to', endTimeInput.value); }
+                args.push(outputName);
+
+                await ffmpeg.exec(args);
+
+                progressBar.style.width = '90%';
+                progressText.textContent = '正在读取结果...';
+
+                const data = await ffmpeg.readFile(outputName);
+                const blob = new Blob([data.buffer], { type: `audio/${fmt}` });
+
+                await ffmpeg.deleteFile(inputName);
+                await ffmpeg.deleteFile(outputName);
+
+                resultCount++;
+                const baseName = currentFile.name.replace(/\.[^.]+$/, '');
+                const outName = `${baseName}_audio_${resultCount}.${fmt}`;
+
+                addResult(outName, blob.size, blob);
+
+                progressBar.style.width = '100%';
+                progressText.textContent = '提取完成！';
+                setTimeout(() => {
+                    progressWrap.classList.remove('show');
+                    progressBar.style.width = '0%';
+                }, 1200);
+            } catch (err) {
+                alert('提取失败：' + err.message);
+                progressWrap.classList.remove('show');
+            } finally {
+                btnExtract.disabled = false;
+            }
+        });
+
+        function addResult(name, size, blob) {
+            resultSection.classList.add('show');
+            const url = URL.createObjectURL(blob);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${name}</td>
+                <td>${formatBytes(size)}</td>
+                <td><audio src="${url}" controls></audio></td>
+                <td>
+                    <div class="result-actions">
+                        <button class="btn-download">下载</button>
+                        <button class="btn-delete">删除</button>
+                    </div>
+                </td>
+            `;
+            tr.querySelector('.btn-download').addEventListener('click', () => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = name;
+                a.click();
+            });
+            tr.querySelector('.btn-delete').addEventListener('click', () => {
+                URL.revokeObjectURL(url);
+                tr.remove();
+                if (resultBody.children.length === 0) {
+                    resultSection.classList.remove('show');
+                }
+            });
+            resultBody.appendChild(tr);
+        }
+
+        btnClear.addEventListener('click', resetAll);
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

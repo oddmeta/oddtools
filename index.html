@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小奥工具箱</title>
+    <link rel="stylesheet" href="/static/tools.css">
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand active" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+    <div class="hero">
+        <h1>小奥工具箱</h1>
+        <p>常用开发工具与实用小功能，纯前端处理，安全便捷</p>
+    </div>
+
+    <div class="container">
+        <div class="category">
+            <div class="category-title"><span class="icon">&#128221;</span>文本与编码</div>
+            <div class="tools-grid">
+                <a class="tool-card" href="/tools/unicode">
+                    <div class="card-icon">&#128292;</div>
+                    <div class="card-title">Unicode 转换</div>
+                    <div class="card-desc">中文、ASCII 与 Unicode 编码互转</div>
+                </a>
+                <a class="tool-card" href="/tools/json">
+                    <div class="card-icon">&#128203;</div>
+                    <div class="card-title">JSON 工具</div>
+                    <div class="card-desc">JSON 格式化、校验与压缩</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title"><span class="icon">&#127912;</span>图片工具</div>
+            <div class="tools-grid">
+                <a class="tool-card" href="/tools/qrcode">
+                    <div class="card-icon">&#9633;</div>
+                    <div class="card-title">二维码生成</div>
+                    <div class="card-desc">支持 PNG/SVG、Logo、颜色自定义</div>
+                </a>
+                <a class="tool-card" href="/tools/barcode">
+                    <div class="card-icon">&#124;&#124;&#124;</div>
+                    <div class="card-title">条形码生成</div>
+                    <div class="card-desc">多种条码格式，支持 PNG/SVG</div>
+                </a>
+                <a class="tool-card" href="/tools/convert2ico">
+                    <div class="card-icon">&#127912;</div>
+                    <div class="card-title">图片转 ICO</div>
+                    <div class="card-desc">PNG/JPG 转为网站图标 ICO 文件</div>
+                </a>
+                <a class="tool-card" href="/tools/ocr">
+                    <div class="card-icon">&#128269;</div>
+                    <div class="card-title">OCR 文字识别</div>
+                    <div class="card-desc">图片中的文字识别与提取</div>
+                </a>
+                <a class="tool-card" href="/tools/imgcrop">
+                    <div class="card-icon">&#9986;</div>
+                    <div class="card-title">图片裁剪</div>
+                    <div class="card-desc">自由裁剪、预设尺寸、圆形输出</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title"><span class="icon">&#127925;</span>音频工具</div>
+            <div class="tools-grid">
+                <a class="tool-card" href="/tools/cutaudio">
+                    <div class="card-icon">&#9986;</div>
+                    <div class="card-title">音频裁剪</div>
+                    <div class="card-desc">按时间截取音频片段，输出 WAV</div>
+                </a>
+                <a class="tool-card" href="/tools/extractaudio">
+                    <div class="card-icon">&#127897;</div>
+                    <div class="card-title">音频提取</div>
+                    <div class="card-desc">从视频中提取音频轨道</div>
+                </a>
+                <a class="tool-card" href="/tools/convertaudio">
+                    <div class="card-icon">&#128260;</div>
+                    <div class="card-title">音频格式转换</div>
+                    <div class="card-desc">MP3/WAV/FLAC/AAC 等格式互转</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title"><span class="icon">&#127909;</span>视频工具</div>
+            <div class="tools-grid">
+                <a class="tool-card" href="/tools/convertvideo">
+                    <div class="card-icon">&#128260;</div>
+                    <div class="card-title">视频格式转换</div>
+                    <div class="card-desc">MP4/WEBM/MKV/AVI 等格式互转</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title"><span class="icon">&#128295;</span>其他工具</div>
+            <div class="tools-grid">
+                <a class="tool-card" href="/tools/oddeditor">
+                    <div class="card-icon">&#9997;</div>
+                    <div class="card-title">Markdown 编辑器</div>
+                    <div class="card-desc">在线 Markdown 编辑与预览</div>
+                </a>
+                <a class="tool-card" href="/tools/oddnotify">
+                    <div class="card-icon">&#128276;</div>
+                    <div class="card-title">通知推送</div>
+                    <div class="card-desc">多渠道消息推送测试</div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">小落同学 · 本地处理 · 隐私安全</div>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

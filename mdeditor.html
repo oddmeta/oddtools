@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 转换工具</title>
+    <link rel="stylesheet" href="/static/tools.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link active" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="toolbar" style="background-color: white; padding: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+        <!-- 将 left: 0 改为 right: 0，width: 100% 改为 width: auto 实现右对齐 -->
+        <select id="platformSelect">
+            <option value="zhihu">知乎</option>
+            <option value="wechat">微信公众号</option>
+        </select>
+        <button onclick="copyCodeToClipboard()">复制代码</button>
+    </div>
+
+    <div class="page-header">
+        <h1>Markdown 转换工具</h1>
+        <p class="subtitle">【已废弃，请使用小奥MD编辑器：<a href="https://md.oddmeta.net/" target="_blank" style="font-weight: bold; color: #007bff;">https://md.oddmeta.net/</a>】实时预览 Markdown 编辑器，支持复制 HTML 代码。</p>
+    </div>
+
+    <div class="editor-container">
+        <div class="editor-pane">
+            <textarea id="markdownInput" placeholder="在此输入 Markdown 内容..."></textarea>
+        </div>
+        <div class="preview-pane">
+            <div id="preview">转换后的内容将显示在这里...</div>
+        </div>
+    </div>
+
+    <script>
+        // 实时预览功能
+        document.getElementById('markdownInput').addEventListener('input', function() {
+            const markdown = this.value;
+            const html = marked.parse(markdown);
+            let previewHTML = "";
+
+            if (document.getElementById('platformSelect').value === 'wechat') {
+                previewHTML = getPreviewHTML_WeChat(html); 
+            }
+            else if (document.getElementById('platformSelect').value === 'zhihu'){
+                previewHTML = getPreviewHTML_Zhihu(html);
+            }
+            else {
+                return;
+            }
+            document.getElementById('preview').innerHTML = previewHTML;
+        });
+
+        // 转换功能（实际在此示例中由实时预览功能覆盖）
+        function convertMarkdown() {
+            // 可选：实现特定的转换逻辑
+        }
+
+        function getPreviewHTML_Zhihu(html) {
+            const platform = document.getElementById('platformSelect').value;
+
+            const baseStyle = {
+                p: 'margin: 1em 0;',
+                h1: 'margin: 1.5em 0 1em; font-size: 2em;',
+                h2: 'margin: 1.5em 0 1em; font-size: 1.5em;',
+                h3: 'margin: 1.5em 0 1em; font-size: 1.25em;',
+                code: 'background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px;'
+            };
+
+            // 将样式直接嵌入到 HTML 元素中
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            const elements = tempDiv.querySelectorAll('p, h1, h2, h3, code');
+            elements.forEach((element) => {
+                const tagName = element.tagName.toLowerCase();
+                if (baseStyle[tagName]) {
+                    element.setAttribute('style', baseStyle[tagName]);
+                }
+            });
+            return tempDiv.innerHTML;
+        }
+
+        function getPreviewHTML_WeChat(html) {
+            const platform = document.getElementById('platformSelect').value;
+            let baseStyle = {
+                    'p': 'margin: 0.8em 0;',
+                    'h1': 'font-size: 24px; font-weight: bold;',
+                    'h2': 'font-size: 20px; font-weight: bold;',
+                    'h3': 'font-size: 18px; font-weight: bold;',
+                    'code': 'background-color: #eee; padding: 2px 4px; border-radius: 3px;'
+                };
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            const elements = tempDiv.querySelectorAll('p, h1, h2, h3, code');
+            elements.forEach((element) => {
+                const tagName = element.tagName.toLowerCase();
+                if (baseStyle[tagName]) {
+                    element.setAttribute('style', baseStyle[tagName]);
+                }
+            });
+            return tempDiv.innerHTML;
+        }
+
+        // 复制代码到剪贴板功能
+        async function copyCodeToClipboard() {
+            const markdown = document.getElementById('markdownInput').value;
+            const html = marked.parse(markdown);
+            let previewHTML = "";
+
+            // 获取包含平台样式的 HTML 内容
+            if (document.getElementById('platformSelect').value === 'wechat') {
+                previewHTML = getPreviewHTML_WeChat(html); 
+            }
+            else if (document.getElementById('platformSelect').value === 'zhihu'){
+                previewHTML = getPreviewHTML_Zhihu(html);
+            }
+            else {
+                alert('未选择平台');
+                return;
+            }
+
+            try {
+                // 使用 Clipboard API 复制 HTML 内容
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': new Blob([previewHTML], { type: 'text/html' }),
+                        'text/plain': new Blob([previewHTML.replace(/<[^>]*>/g, '')], { type: 'text/plain' })
+                    })
+                ]);
+                alert('HTML 代码复制成功');
+            } catch (err) {
+                alert('HTML 代码复制失败');
+            }
+        }
+
+        
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>

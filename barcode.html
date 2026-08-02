@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>条形码生成工具</title>
+    <link rel="stylesheet" href="/static/tools.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body class="tools-layout">
+<div class="sidebar">
+    <a class="sidebar-brand" href="/tools/">
+        <span class="logo">&#128295;</span>
+        <span>小奥工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
+        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
+        <a class="sidebar-link active" href="/tools/barcode">条形码生成</a>
+        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
+        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
+        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
+        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
+        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
+        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
+    </div>
+</div>
+<div class="tools-main">
+
+
+
+    <div class="container">
+        <div class="page-header">
+            <h1>条形码生成工具</h1>
+            <p class="subtitle">支持多种条码格式，高度自定义样式</p>
+        </div>
+
+        <div class="main">
+            <div class="panel">
+                <h3>基础设置</h3>
+                <div class="form-row">
+                    <label for="bcText">条码内容</label>
+                    <input type="text" id="bcText" value="123456789012" placeholder="输入条码内容">
+                    <div class="hint-text" id="formatHint">CODE128：支持数字、字母及特殊字符</div>
+                </div>
+                <div class="form-row">
+                    <label for="bcFormat">条码类型</label>
+                    <select id="bcFormat">
+                        <option value="CODE128" selected>CODE128（通用）</option>
+                        <option value="EAN13">EAN-13（13位数字）</option>
+                        <option value="EAN8">EAN-8（8位数字）</option>
+                        <option value="EAN5">EAN-5（5位数字）</option>
+                        <option value="EAN2">EAN-2（2位数字）</option>
+                        <option value="UPC">UPC-A（12位数字）</option>
+                        <option value="UPCE">UPC-E（压缩8位）</option>
+                        <option value="CODE39">CODE39（数字+大写字母）</option>
+                        <option value="ITF14">ITF-14（14位数字）</option>
+                        <option value="ITF">ITF（偶数位数字）</option>
+                        <option value="MSI">MSI（纯数字）</option>
+                        <option value="MSI10">MSI10</option>
+                        <option value="MSI11">MSI11</option>
+                        <option value="MSI1010">MSI1010</option>
+                        <option value="MSI1110">MSI1110</option>
+                        <option value="pharmacode">Pharmacode（纯数字 3-131070）</option>
+                        <option value="codabar">Codabar（数字 + - $ : / . +）</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="bcImageType">图片类型</label>
+                    <select id="bcImageType">
+                        <option value="png" selected>PNG</option>
+                        <option value="svg">SVG</option>
+                    </select>
+                </div>
+
+                <h3 style="margin-top: 20px;">尺寸设置</h3>
+                <div class="form-row">
+                    <label for="bcWidth">单个条宽度（像素）</label>
+                    <input type="number" id="bcWidth" value="2" min="1" max="10">
+                </div>
+                <div class="form-row">
+                    <label for="bcHeight">条形码高度（像素）</label>
+                    <input type="number" id="bcHeight" value="100" min="10" max="500">
+                </div>
+                <div class="form-row">
+                    <label for="bcMargin">外边距（像素）</label>
+                    <input type="number" id="bcMargin" value="10" min="0" max="100">
+                </div>
+                <div class="form-row">
+                    <label for="bcTextMargin">图文间距（像素）</label>
+                    <input type="number" id="bcTextMargin" value="2" min="0" max="50">
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>文本样式</h3>
+                <div class="form-row inline">
+                    <input type="checkbox" id="bcDisplayValue" checked>
+                    <label for="bcDisplayValue" style="margin-bottom:0;">显示文本</label>
+                </div>
+                <div class="form-row">
+                    <label>文本位置</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="textPosition" value="bottom" checked> 条码下方</label>
+                        <label><input type="radio" name="textPosition" value="top"> 条码上方</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>对齐方式</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="textAlign" value="left"> 左对齐</label>
+                        <label><input type="radio" name="textAlign" value="center" checked> 居中对齐</label>
+                        <label><input type="radio" name="textAlign" value="right"> 右对齐</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="bcFont">文本字体</label>
+                    <input type="text" id="bcFont" value="monospace" placeholder="如：Arial, monospace">
+                </div>
+                <div class="form-row">
+                    <label for="bcFontSize">字体大小（像素）</label>
+                    <input type="number" id="bcFontSize" value="20" min="8" max="72">
+                </div>
+                <div class="form-row">
+                    <label>字体样式</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="fontBold"> 粗体</label>
+                        <label><input type="checkbox" id="fontItalic"> 斜体</label>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px;">颜色设置</h3>
+                <div class="form-row">
+                    <label for="bcLineColor">线条颜色</label>
+                    <input type="color" id="bcLineColor" value="#000000">
+                </div>
+                <div class="form-row">
+                    <label for="bcBgColor">背景颜色</label>
+                    <input type="color" id="bcBgColor" value="#ffffff">
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-generate" onclick="generateBarcode()">生成条形码</button>
+            <button class="btn btn-download" onclick="downloadBarcode()" id="btnDownload" style="display:none;">下载图片</button>
+            <button class="btn btn-clear" onclick="clearAll()">清空</button>
+        </div>
+
+        <div class="preview-area">
+            <div class="preview-box" id="previewBox">
+                <span class="preview-placeholder">点击"生成条形码"预览效果</span>
+            </div>
+            <div class="format-info" id="formatInfo"></div>
+        </div>
+
+        <div class="info-section">
+            <h2>说明</h2>
+            <div class="highlight">
+                <p>条形码是一种表示数据的图形符号，通过排列的条（线）和空（间）来表示字符。条形码被广泛应用于商品管理、图书管理、门票系统等多个领域，其便利性和准确性使其成为现代数据采集的重要工具。</p>
+            </div>
+
+            <h3>条形码的起源</h3>
+            <p>条形码的概念最早可以追溯到 20 世纪 40 年代末。1948 年，美国的伯纳德·西尔弗（Bernard Silver）和诺曼·约瑟夫·伍德兰德（Norman Joseph Woodland）在费城德雷塞尔理工学院（Drexel Institute of Technology）提出了条形码的想法。他们受到了当地一家食品连锁店的委托，研究如何自动读取产品信息，从而加快结账过程。伍德兰德受到摩尔斯电码的启发，将点和线条结合，创造出早期的条形码。</p>
+            <p>1966 年，第一个商用条形码系统在铁路货运中得到应用。1974 年，全球首个商品条形码扫描器被安装在美国俄亥俄州的马西斯超级市场（Marsh's Supermarket），并扫描了第一件商品——一包 Wrigley's 口香糖，这一事件标志着条形码在商业中的广泛应用。</p>
+
+            <h3>条形码的优点</h3>
+            <ul>
+                <li><strong>高效快捷</strong>：条形码扫描速度快，能够大大提高商品结算、库存管理等流程的效率。</li>
+                <li><strong>准确性高</strong>：条形码能够准确无误地读取信息，避免了手工输入可能带来的错误。</li>
+                <li><strong>成本低廉</strong>：条形码打印和扫描设备成本低，维护简单，适合大规模应用。</li>
+                <li><strong>通用性强</strong>：条形码已经成为国际标准，能够在全球范围内通用，方便跨国贸易和物流。</li>
+                <li><strong>存储信息量大</strong>：虽然传统的一维条形码信息容量有限，但二维条形码（如QR码）可以存储更多的信息，包括文本、网址等。</li>
+            </ul>
+
+            <h3>条形码的缺点</h3>
+            <ul>
+                <li><strong>易受损</strong>：条形码容易因磨损、折痕等原因损坏，影响读取效果。</li>
+                <li><strong>信息容量有限</strong>：传统的一维条形码信息容量较小，通常只能存储数字或字母，无法存储更多复杂的数据。</li>
+                <li><strong>视觉依赖性强</strong>：条形码必须在可见范围内才能被扫描器读取，对于透明包装或反光表面效果不佳。</li>
+                <li><strong>数据更新不便</strong>：一旦条形码生成后，数据内容难以更改，需要重新生成新的条形码。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const formatHints = {
+            'CODE128': 'CODE128：支持数字、字母及特殊字符，最通用的条码格式',
+            'EAN13': 'EAN-13：需要13位纯数字（或12位，会自动计算校验位）',
+            'EAN8': 'EAN-8：需要8位纯数字（或7位，会自动计算校验位）',
+            'EAN5': 'EAN-5：需要5位纯数字',
+            'EAN2': 'EAN-2：需要2位纯数字',
+            'UPC': 'UPC-A：需要12位纯数字（或11位，会自动计算校验位）',
+            'UPCE': 'UPCE：需要8位数字',
+            'CODE39': 'CODE39：支持数字、大写字母及 - . $ / + % 空格',
+            'ITF14': 'ITF-14：需要14位纯数字',
+            'ITF': 'ITF：需要偶数位纯数字',
+            'MSI': 'MSI：纯数字',
+            'MSI10': 'MSI10：纯数字',
+            'MSI11': 'MSI11：纯数字',
+            'MSI1010': 'MSI1010：纯数字',
+            'MSI1110': 'MSI1110：纯数字',
+            'pharmacode': 'Pharmacode：纯数字，范围 3 ~ 131070',
+            'codabar': 'Codabar：数字及字符 - $ : / . +'
+        };
+
+        const bcText = document.getElementById('bcText');
+        const bcFormat = document.getElementById('bcFormat');
+        const bcImageType = document.getElementById('bcImageType');
+        const bcWidth = document.getElementById('bcWidth');
+        const bcHeight = document.getElementById('bcHeight');
+        const bcMargin = document.getElementById('bcMargin');
+        const bcTextMargin = document.getElementById('bcTextMargin');
+        const bcDisplayValue = document.getElementById('bcDisplayValue');
+        const bcFont = document.getElementById('bcFont');
+        const bcFontSize = document.getElementById('bcFontSize');
+        const bcLineColor = document.getElementById('bcLineColor');
+        const bcBgColor = document.getElementById('bcBgColor');
+        const previewBox = document.getElementById('previewBox');
+        const formatHint = document.getElementById('formatHint');
+        const formatInfo = document.getElementById('formatInfo');
+        const btnDownload = document.getElementById('btnDownload');
+
+        bcFormat.addEventListener('change', function() {
+            formatHint.textContent = formatHints[this.value] || '';
+        });
+
+        function getFontOptions() {
+            const opts = [];
+            if (document.getElementById('fontBold').checked) opts.push('bold');
+            if (document.getElementById('fontItalic').checked) opts.push('italic');
+            return opts.join(' ') || undefined;
+        }
+
+        function getTextPosition() {
+            return document.querySelector('input[name="textPosition"]:checked').value;
+        }
+
+        function getTextAlign() {
+            return document.querySelector('input[name="textAlign"]:checked').value;
+        }
+
+        function createRenderElement() {
+            previewBox.innerHTML = '';
+            previewBox.classList.add('has-content');
+            const type = bcImageType.value;
+            const el = document.createElement(type === 'svg' ? 'svg' : 'canvas');
+            el.id = 'barcodeTarget';
+            previewBox.appendChild(el);
+            return el;
+        }
+
+        function generateBarcode() {
+            const text = bcText.value.trim();
+            if (!text) {
+                alert('请输入条码内容');
+                return;
+            }
+
+            const el = createRenderElement();
+            const options = {
+                format: bcFormat.value,
+                width: parseInt(bcWidth.value) || 2,
+                height: parseInt(bcHeight.value) || 100,
+                margin: parseInt(bcMargin.value) || 10,
+                textMargin: parseInt(bcTextMargin.value) || 2,
+                displayValue: bcDisplayValue.checked,
+                textPosition: getTextPosition(),
+                textAlign: getTextAlign(),
+                font: bcFont.value || 'monospace',
+                fontSize: parseInt(bcFontSize.value) || 20,
+                lineColor: bcLineColor.value,
+                background: bcBgColor.value
+            };
+
+            const fontOpts = getFontOptions();
+            if (fontOpts) {
+                options.fontOptions = fontOpts;
+            }
+
+            try {
+                JsBarcode(el, text, options);
+                btnDownload.style.display = 'inline-block';
+                formatInfo.textContent = '已生成 ' + bcFormat.value + ' 格式条形码';
+            } catch (e) {
+                previewBox.innerHTML = '<span class="preview-placeholder" style="color:#e74c3c;">生成失败：' + e.message + '</span>';
+                previewBox.classList.remove('has-content');
+                btnDownload.style.display = 'none';
+                formatInfo.textContent = '';
+            }
+        }
+
+        function downloadBarcode() {
+            const type = bcImageType.value;
+            if (type === 'svg') {
+                const svg = previewBox.querySelector('svg');
+                if (!svg) { alert('请先生成条形码'); return; }
+                const serializer = new XMLSerializer();
+                const svgString = serializer.serializeToString(svg);
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'barcode.svg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            } else {
+                const canvas = previewBox.querySelector('canvas');
+                if (!canvas) { alert('请先生成条形码'); return; }
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'barcode.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        function clearAll() {
+            bcText.value = '';
+            previewBox.innerHTML = '<span class="preview-placeholder">点击"生成条形码"预览效果</span>';
+            previewBox.classList.remove('has-content');
+            btnDownload.style.display = 'none';
+            formatInfo.textContent = '';
+        }
+
+        // 回车快捷键
+        bcText.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateBarcode();
+            }
+        });
+    </script>
+</div>
+<script>
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
+
+</body>
+</html>
