@@ -1,0 +1,431 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大模型测试</title>
+    <link rel="icon" href="static/images/favicon.ico">
+    <link rel="stylesheet" href="static/tools.css">
+    <style>
+        .llm-wrap {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .llm-wrap { grid-template-columns: 1fr; }
+        }
+        .config-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .model-select-wrap {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .model-select-wrap select {
+            flex: 1;
+        }
+        .model-select-wrap .btn {
+            padding: 9px 12px;
+            white-space: nowrap;
+        }
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chat-messages {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            min-height: 320px;
+            max-height: 560px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .chat-messages:empty::before {
+            content: '响应内容将在这里流式显示...';
+            color: var(--text-muted);
+        }
+        .chat-messages.streaming {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.08);
+        }
+        .chat-input-row {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input-row textarea {
+            flex: 1;
+            min-height: 60px;
+            resize: vertical;
+        }
+        .chat-input-row .btn {
+            align-self: flex-end;
+            height: fit-content;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .stats-bar span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            display: inline-block;
+        }
+        .status-dot.active { background: var(--success); }
+        .status-dot.error { background: var(--danger); }
+        .error-tip {
+            display: none;
+            padding: 10px 14px;
+            background: var(--danger-bg);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--danger);
+        }
+        .success-tip {
+            display: none;
+            padding: 10px 14px;
+            background: var(--success-bg);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--success);
+        }
+        .preset-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .preset-btn {
+            padding: 5px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .preset-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body class="tools-layout">
+<div id="sidebar-container"></div>
+<div class="tools-main">
+    <div class="page-header">
+        <h1>大模型测试</h1>
+        <p class="subtitle">测试 OpenAI 兼容接口，支持获取模型列表与流式对话</p>
+    </div>
+
+    <div class="llm-wrap">
+        <div class="config-panel">
+            <div class="card">
+                <div class="card-title">接口配置</div>
+                <div class="form-row">
+                    <label>API URL</label>
+                    <input type="url" id="apiUrl" placeholder="https://api.example.com/v1">
+                </div>
+                <div class="form-row">
+                    <label>API Key</label>
+                    <input type="password" id="apiKey" placeholder="sk-xxxxxxxx">
+                </div>
+                <div class="form-row">
+                    <label>快捷预设</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="setPreset('openai')">OpenAI</button>
+                        <button class="preset-btn" onclick="setPreset('siliconflow')">硅基流动</button>
+                        <button class="preset-btn" onclick="setPreset('local')">本地 Ollama</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">模型选择</div>
+                <div class="form-row">
+                    <div class="model-select-wrap">
+                        <select id="modelSelect">
+                            <option value="">请先获取模型列表</option>
+                        </select>
+                        <button class="btn btn-primary" id="btnFetchModels" onclick="fetchModels()">获取列表</button>
+                    </div>
+                </div>
+                <div class="success-tip" id="modelSuccess"></div>
+                <div class="error-tip" id="modelError"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">参数</div>
+                <div class="form-row inline">
+                    <label>Temperature</label>
+                    <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1" style="width:80px">
+                </div>
+                <div class="form-row inline">
+                    <label>Max Tokens</label>
+                    <input type="number" id="maxTokens" value="1024" min="1" max="8192" step="1" style="width:100px">
+                </div>
+                <div class="form-row inline">
+                    <label>System Prompt</label>
+                    <input type="text" id="systemPrompt" placeholder="可选" style="flex:1">
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="stats-bar">
+                <span><i class="status-dot" id="statusDot"></i> <span id="statusText">就绪</span></span>
+                <span>Tokens: <span id="tokenCount">-</span></span>
+                <span>耗时: <span id="elapsedTime">-</span></span>
+            </div>
+
+            <div class="chat-messages" id="chatMessages"></div>
+
+            <div class="chat-input-row">
+                <textarea id="userPrompt" placeholder="输入你的问题，按 Ctrl+Enter 发送..."></textarea>
+                <button class="btn btn-primary" id="btnSend" onclick="sendMessage()">发送</button>
+                <button class="btn btn-secondary" id="btnStop" onclick="stopStream()" style="display:none">停止</button>
+            </div>
+
+            <div class="error-tip" id="chatError"></div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h2>说明</h2>
+        <p>本工具用于测试任何兼容 OpenAI API 格式的大模型接口。所有请求直接从浏览器发送到目标 API，API Key 仅保存在本地，不会上传至本服务器。</p>
+        <h4>支持的接口格式</h4>
+        <ul>
+            <li><code>GET /v1/models</code> — 获取可用模型列表</li>
+            <li><code>POST /v1/chat/completions</code> — 流式对话（SSE）</li>
+        </ul>
+        <h4>使用提示</h4>
+        <ul>
+            <li>API URL 需包含协议头（如 <code>https://</code>），路径以 <code>/v1</code> 结尾。</li>
+            <li>如果接口支持 CORS，可直接在浏览器中调用；否则需确保本站点在允许列表中。</li>
+            <li>本地 Ollama 默认地址为 <code>http://localhost:11434/v1</code>，需开启 CORS。</li>
+            <li>流式输出实时显示，可随时点击"停止"中断生成。</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+(function() {
+    const apiUrlInput = document.getElementById('apiUrl');
+    const apiKeyInput = document.getElementById('apiKey');
+    const modelSelect = document.getElementById('modelSelect');
+    const chatMessages = document.getElementById('chatMessages');
+    const userPrompt = document.getElementById('userPrompt');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const tokenCount = document.getElementById('tokenCount');
+    const elapsedTime = document.getElementById('elapsedTime');
+    const chatError = document.getElementById('chatError');
+    const modelError = document.getElementById('modelError');
+    const modelSuccess = document.getElementById('modelSuccess');
+    const btnSend = document.getElementById('btnSend');
+    const btnStop = document.getElementById('btnStop');
+
+    let abortController = null;
+    let streamStartTime = 0;
+    let receivedChars = 0;
+
+    const PRESETS = {
+        openai: { url: 'https://api.openai.com/v1', key: '' },
+        siliconflow: { url: 'https://api.siliconflow.cn/v1', key: '' },
+        local: { url: 'http://localhost:11434/v1', key: 'ollama' }
+    };
+
+    window.setPreset = function(name) {
+        const p = PRESETS[name];
+        if (!p) return;
+        apiUrlInput.value = p.url;
+        apiKeyInput.value = p.key;
+    };
+
+    function showError(el, msg) {
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+    function hideError(el) { el.style.display = 'none'; }
+
+    function setStatus(state, text) {
+        statusDot.className = 'status-dot ' + state;
+        statusText.textContent = text;
+    }
+
+    function getBaseUrl() {
+        let url = apiUrlInput.value.trim();
+        if (!url) return '';
+        if (url.endsWith('/')) url = url.slice(0, -1);
+        return url;
+    }
+
+    window.fetchModels = async function() {
+        hideError(modelError);
+        hideError(modelSuccess);
+        const base = getBaseUrl();
+        const key = apiKeyInput.value.trim();
+        if (!base) { showError(modelError, '请先填写 API URL'); return; }
+
+        try {
+            const res = await fetch(base + '/models', {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + key }
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error('HTTP ' + res.status + ': ' + txt.slice(0, 200));
+            }
+            const data = await res.json();
+            const models = (data.data || []).map(m => m.id || m.model || m.name).filter(Boolean);
+            modelSelect.innerHTML = '';
+            if (models.length === 0) {
+                modelSelect.innerHTML = '<option value="">未找到模型</option>';
+                showError(modelSuccess, '接口返回为空');
+            } else {
+                models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    modelSelect.appendChild(opt);
+                });
+                showError(modelSuccess, '成功获取 ' + models.length + ' 个模型');
+            }
+        } catch (err) {
+            showError(modelError, '获取模型列表失败：' + err.message);
+        }
+    };
+
+    window.sendMessage = async function() {
+        hideError(chatError);
+        const base = getBaseUrl();
+        const key = apiKeyInput.value.trim();
+        const model = modelSelect.value;
+        const prompt = userPrompt.value.trim();
+
+        if (!base) { showError(chatError, '请先填写 API URL'); return; }
+        if (!model) { showError(chatError, '请先选择模型'); return; }
+        if (!prompt) { showError(chatError, '请输入问题'); return; }
+
+        chatMessages.textContent = '';
+        chatMessages.classList.add('streaming');
+        btnSend.style.display = 'none';
+        btnStop.style.display = 'inline-flex';
+        setStatus('active', '生成中...');
+        streamStartTime = performance.now();
+        receivedChars = 0;
+        tokenCount.textContent = '-';
+        elapsedTime.textContent = '-';
+
+        const messages = [];
+        const sys = document.getElementById('systemPrompt').value.trim();
+        if (sys) messages.push({ role: 'system', content: sys });
+        messages.push({ role: 'user', content: prompt });
+
+        abortController = new AbortController();
+
+        try {
+            const res = await fetch(base + '/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + key
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    stream: true,
+                    temperature: parseFloat(document.getElementById('temperature').value) || 0.7,
+                    max_tokens: parseInt(document.getElementById('maxTokens').value) || 1024
+                }),
+                signal: abortController.signal
+            });
+
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error('HTTP ' + res.status + ': ' + txt.slice(0, 400));
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    processSSELine(line);
+                }
+            }
+            if (buffer) processSSELine(buffer);
+
+            setStatus('', '完成');
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                setStatus('', '已停止');
+            } else {
+                setStatus('error', '错误');
+                showError(chatError, '请求失败：' + err.message);
+            }
+        } finally {
+            chatMessages.classList.remove('streaming');
+            btnSend.style.display = 'inline-flex';
+            btnStop.style.display = 'none';
+            abortController = null;
+            const ms = performance.now() - streamStartTime;
+            elapsedTime.textContent = (ms / 1000).toFixed(2) + 's';
+        }
+    };
+
+    function processSSELine(line) {
+        line = line.trim();
+        if (!line || line.startsWith(':')) return;
+        if (!line.startsWith('data:')) return;
+        const jsonStr = line.slice(5).trim();
+        if (jsonStr === '[DONE]') return;
+        try {
+            const chunk = JSON.parse(jsonStr);
+            const delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
+            if (delta && delta.content) {
+                chatMessages.textContent += delta.content;
+                receivedChars += delta.content.length;
+                tokenCount.textContent = receivedChars;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        } catch (e) {
+            // ignore malformed JSON
+        }
+    }
+
+    window.stopStream = function() {
+        if (abortController) abortController.abort();
+    };
+
+    userPrompt.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') sendMessage();
+    });
+})();
+</script>
+</body>
+</html>

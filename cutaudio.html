@@ -1,46 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>音频裁剪</title>
-    <link rel="stylesheet" href="/static/tools.css">
+    <link rel="icon" href="static/images/favicon.ico">
+    <link rel="stylesheet" href="static/tools.css">
+    <script src="static/ffmpeg/ffmpeg.js"></script>
+    <script src="static/ffmpeg/util.js"></script>
 </head>
 <body class="tools-layout">
-<div class="sidebar">
-    <a class="sidebar-brand" href="/tools/">
-        <span class="logo">&#128295;</span>
-        <span>小奥工具箱</span>
-    </a>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">文本与编码</div>
-        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
-        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
-    </div>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">图片工具</div>
-        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
-        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
-        <a class="sidebar-link" href="/tools/convert2ico">图片转 ICO</a>
-        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
-        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
-    </div>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">音频工具</div>
-        <a class="sidebar-link active" href="/tools/cutaudio">音频裁剪</a>
-        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
-        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
-    </div>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">视频工具</div>
-        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
-    </div>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">其他工具</div>
-        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
-        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
-    </div>
-</div>
+<div id="sidebar-container"></div>
 <div class="tools-main">
 
 
@@ -54,7 +24,7 @@
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">&#9836;</div>
             <h3>点击选择，或将音频文件拖放到此处</h3>
-            <p>音频格式：mp3 | wav | m4a | flac | ogg | aac | wma | aiff | opus<br>文件大小不超过 50 MB</p>
+            <p>音频格式：mp3 | wav | m4a | flac | ogg | aac | wma | aiff | opus<br>文件大小不超过 150 MB</p>
             <input type="file" id="fileInput" accept="audio/*">
         </div>
 
@@ -118,9 +88,10 @@
         <div class="info-section">
             <h4>说明</h4>
             <ul>
-                <li>本工具基于 Web Audio API 构建，所有音频处理操作均在您的本地设备完成，无需上传至任何服务器，确保您的音频文件隐私安全。</li>
-                <li>支持的输入格式取决于浏览器对音频格式的解码能力，常见格式如 MP3、WAV、AAC、OGG、FLAC 等一般均可正常处理。</li>
-                <li>裁剪后的音频统一输出为 <strong>WAV</strong> 格式（PCM 16bit 立体声/单声道），以确保最佳兼容性。</li>
+                <li>本工具基于 FFmpeg.wasm 构建，将业界标准的 FFmpeg 多媒体处理引擎通过 WebAssembly 技术移植到浏览器端运行，所有音频处理操作均在您的本地设备完成，无需上传至任何服务器。</li>
+                <li>第一次使用此工具需要等待 FFmpeg.wasm 核心下载并加载完成（约 25 MB，根据网络情况可能需要几秒到几十秒）。</li>
+                <li>支持的输入格式取决于 FFmpeg 的解码能力，几乎所有常见音频格式均可正常处理。</li>
+                <li>裁剪后的音频统一输出为 <strong>WAV</strong> 格式，保留原始采样率与通道数，以确保最佳兼容性。</li>
                 <li>时间格式支持 <code>HH:mm:ss.SSS</code>，也可简写为纯秒数（如输入 <code>90.5</code> 表示 1分30秒500毫秒）。</li>
                 <li>开始时间必须小于结束时间，且结束时间不得超过音频总时长。</li>
             </ul>
@@ -151,15 +122,42 @@
         const resultBody = document.getElementById('resultBody');
 
         let currentFile = null;
-        let audioBuffer = null;
         let resultCount = 0;
-        let audioCtx = null;
+        let ffmpeg = null;
+        let ffmpegLoaded = false;
+        let probedDuration = 0;
 
-        function getAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        async function initFFmpeg() {
+            if (ffmpegLoaded) return;
+            try {
+                const { FFmpeg } = FFmpegWASM;
+                const { fetchFile } = FFmpegUtil;
+                ffmpeg = new FFmpeg();
+                ffmpeg.on('log', ({ message }) => {
+                    console.log('[FFmpeg]', message);
+                    const match = message.match(/Duration: (\d{2}):(\d{2}):(\d{2}\.\d{2})/);
+                    if (match) {
+                        const h = parseInt(match[1]);
+                        const m = parseInt(match[2]);
+                        const s = parseFloat(match[3]);
+                        probedDuration = h * 3600 + m * 60 + s;
+                    }
+                });
+                ffmpeg.on('progress', ({ progress }) => {
+                    const pct = Math.round(progress * 100);
+                    progressBar.style.width = pct + '%';
+                    progressText.textContent = `处理进度：${pct}%`;
+                });
+                await ffmpeg.load({
+                    coreURL: 'static/ffmpeg/ffmpeg-core.js',
+                    wasmURL: 'static/ffmpeg/ffmpeg-core.wasm'
+                });
+                ffmpeg.fetchFile = fetchFile;
+                ffmpegLoaded = true;
+            } catch (err) {
+                console.error('FFmpeg init error:', err);
+                throw err;
             }
-            return audioCtx;
         }
 
         function formatTime(seconds) {
@@ -173,7 +171,7 @@
         function parseTime(str) {
             str = str.trim();
             if (!str) return 0;
-            if (!isNaN(parseFloat(str))) return parseFloat(str);
+            if (/^\d+(?:\.\d+)?$/.test(str)) return parseFloat(str);
             const m = str.match(/^(?:(\d+):)?(?:(\d+):)?(\d+(?:\.\d+)?)$/);
             if (!m) return NaN;
             let h = 0, min = 0, sec = 0;
@@ -191,54 +189,6 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        function writeWav(buffer) {
-            const numChannels = buffer.numberOfChannels;
-            const sampleRate = buffer.sampleRate;
-            const format = 1;
-            const bitDepth = 16;
-            const bytesPerSample = bitDepth / 8;
-            const blockAlign = numChannels * bytesPerSample;
-            const byteRate = sampleRate * blockAlign;
-            const dataLength = buffer.length * blockAlign;
-            const bufferLength = 44 + dataLength;
-            const arrayBuffer = new ArrayBuffer(bufferLength);
-            const view = new DataView(arrayBuffer);
-
-            function writeString(offset, string) {
-                for (let i = 0; i < string.length; i++) {
-                    view.setUint8(offset + i, string.charCodeAt(i));
-                }
-            }
-
-            writeString(0, 'RIFF');
-            view.setUint32(4, 36 + dataLength, true);
-            writeString(8, 'WAVE');
-            writeString(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, format, true);
-            view.setUint16(22, numChannels, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, byteRate, true);
-            view.setUint16(32, blockAlign, true);
-            view.setUint16(34, bitDepth, true);
-            writeString(36, 'data');
-            view.setUint32(40, dataLength, true);
-
-            const offset = 44;
-            const channels = [];
-            for (let c = 0; c < numChannels; c++) {
-                channels.push(buffer.getChannelData(c));
-            }
-            for (let i = 0; i < buffer.length; i++) {
-                for (let c = 0; c < numChannels; c++) {
-                    let sample = Math.max(-1, Math.min(1, channels[c][i]));
-                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-                    view.setInt16(offset + (i * blockAlign) + (c * bytesPerSample), sample, true);
-                }
-            }
-            return arrayBuffer;
-        }
-
         uploadArea.addEventListener('click', () => fileInput.click());
         uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
         uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
@@ -254,8 +204,8 @@
         });
 
         async function handleFile(file) {
-            if (file.size > 50 * 1024 * 1024) {
-                alert('文件大小超过 50 MB 限制');
+            if (file.size > 150 * 1024 * 1024) {
+                alert('文件大小超过 150 MB 限制');
                 return;
             }
             currentFile = file;
@@ -268,17 +218,34 @@
             audioPlayer.src = url;
             audioWrap.classList.add('show');
 
-            try {
-                const ctx = getAudioContext();
-                const arrayBuffer = await file.arrayBuffer();
-                audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-                const duration = audioBuffer.duration;
-                fileDetail.textContent = `${formatBytes(file.size)} · 时长 ${formatTime(duration)} · ${audioBuffer.sampleRate}Hz · ${audioBuffer.numberOfChannels}声道`;
+            audioPlayer.onloadedmetadata = () => {
+                const duration = audioPlayer.duration || 0;
+                fileDetail.textContent = `${formatBytes(file.size)} · 时长 ${formatTime(duration)}`;
                 endTimeInput.value = formatTime(duration);
                 timeSection.classList.add('show');
+            };
+
+            try {
+                await initFFmpeg();
+                // 用 FFmpeg 获取准确时长（浏览器 audioPlayer.duration 对大文件/VBR MP3 不准确）
+                const probeName = 'probe_input' + currentFile.name.substring(currentFile.name.lastIndexOf('.'));
+                await ffmpeg.writeFile(probeName, await ffmpeg.fetchFile(currentFile));
+                probedDuration = 0;
+                try {
+                    await ffmpeg.exec(['-i', probeName, '-c', 'copy', '-f', 'null', '-']);
+                } catch (e) {
+                    // 忽略非零退出码，只要日志中的 Duration 信息
+                }
+                await ffmpeg.deleteFile(probeName);
+                if (probedDuration > 0) {
+                    currentFile._accurateDuration = probedDuration;
+                    fileDetail.textContent = `${formatBytes(file.size)} · 时长 ${formatTime(probedDuration)}`;
+                    endTimeInput.value = formatTime(probedDuration);
+                    timeSection.classList.add('show');
+                }
             } catch (err) {
-                alert('音频解码失败：' + err.message);
-                resetAll();
+                console.error('FFmpeg init error:', err);
+                alert('FFmpeg 加载失败：' + err.message);
             }
         }
 
@@ -286,11 +253,11 @@
 
         function resetAll() {
             currentFile = null;
-            audioBuffer = null;
             fileInfo.classList.remove('show');
             uploadArea.style.display = 'block';
             audioWrap.classList.remove('show');
             audioPlayer.src = '';
+            audioPlayer.onloadedmetadata = null;
             timeSection.classList.remove('show');
             startTimeInput.value = '00:00:00.000';
             endTimeInput.value = '';
@@ -314,15 +281,23 @@
         });
         btnFull.addEventListener('click', () => {
             startTimeInput.value = '00:00:00.000';
-            if (audioBuffer) {
-                endTimeInput.value = formatTime(audioBuffer.duration);
+            const duration = (currentFile && currentFile._accurateDuration) || audioPlayer.duration || 0;
+            if (duration > 0) {
+                endTimeInput.value = formatTime(duration);
             }
         });
 
         btnCut.addEventListener('click', async () => {
-            if (!audioBuffer) return;
+            if (!currentFile) return;
+            if (!ffmpegLoaded) {
+                alert('FFmpeg 尚未加载完成，请稍后再试');
+                try { await initFFmpeg(); } catch(e) {}
+                return;
+            }
+
             const start = parseTime(startTimeInput.value);
             const end = parseTime(endTimeInput.value);
+            const maxDuration = (currentFile && currentFile._accurateDuration) || audioPlayer.duration || 0;
             if (isNaN(start) || isNaN(end)) {
                 alert('时间格式不正确');
                 return;
@@ -335,39 +310,42 @@
                 alert('结束时间必须大于开始时间');
                 return;
             }
-            if (end > audioBuffer.duration) {
-                alert('结束时间不能超过音频总时长 ' + formatTime(audioBuffer.duration));
+            if (maxDuration > 0 && end > maxDuration) {
+                alert('结束时间不能超过音频总时长 ' + formatTime(maxDuration));
                 return;
             }
 
             btnCut.disabled = true;
             progressWrap.classList.add('show');
-            progressBar.style.width = '30%';
-            progressText.textContent = '正在裁剪音频...';
+            progressBar.style.width = '10%';
+            progressText.textContent = '正在读取音频文件...';
 
             try {
-                await new Promise(r => setTimeout(r, 50));
-                const sampleRate = audioBuffer.sampleRate;
-                const numChannels = audioBuffer.numberOfChannels;
-                const startSample = Math.floor(start * sampleRate);
-                const endSample = Math.floor(end * sampleRate);
-                const length = endSample - startSample;
+                const inputName = 'input' + currentFile.name.substring(currentFile.name.lastIndexOf('.'));
+                const outputName = 'output.wav';
 
-                const newBuffer = getAudioContext().createBuffer(numChannels, length, sampleRate);
-                for (let c = 0; c < numChannels; c++) {
-                    const oldData = audioBuffer.getChannelData(c);
-                    const newData = newBuffer.getChannelData(c);
-                    for (let i = 0; i < length; i++) {
-                        newData[i] = oldData[startSample + i];
-                    }
-                }
+                await ffmpeg.writeFile(inputName, await ffmpeg.fetchFile(currentFile));
 
-                progressBar.style.width = '70%';
-                progressText.textContent = '正在生成 WAV 文件...';
-                await new Promise(r => setTimeout(r, 50));
+                progressBar.style.width = '40%';
+                progressText.textContent = '正在裁剪音频...';
 
-                const wavBuffer = writeWav(newBuffer);
-                const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+                const cutDuration = end - start;
+                await ffmpeg.exec([
+                    '-i', inputName,
+                    '-ss', String(start),
+                    '-t', String(cutDuration),
+                    outputName
+                ]);
+
+                progressBar.style.width = '80%';
+                progressText.textContent = '正在读取结果...';
+
+                const data = await ffmpeg.readFile(outputName);
+                const blob = new Blob([data.buffer], { type: 'audio/wav' });
+
+                await ffmpeg.deleteFile(inputName);
+                await ffmpeg.deleteFile(outputName);
+
                 resultCount++;
                 const baseName = currentFile.name.replace(/\.[^.]+$/, '');
                 const outName = `${baseName}_cut_${resultCount}.wav`;
@@ -422,13 +400,6 @@
         btnClear.addEventListener('click', resetAll);
     </script>
 </div>
-<script>
-    (function(){
-        document.querySelectorAll('.sidebar-link').forEach(function(a){
-            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
-        });
-    })();
-</script>
-
+<script src="static/sidebar-loader.js"></script>
 </body>
 </html>

@@ -1,46 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图片转 ICO 图标</title>
-    <link rel="stylesheet" href="/static/tools.css">
+    <link rel="icon" href="static/images/favicon.ico">
+    <link rel="stylesheet" href="static/tools.css">
 </head>
 <body class="tools-layout">
-<div class="sidebar">
-    <a class="sidebar-brand" href="/tools/">
-        <span class="logo">&#128295;</span>
-        <span>小奥工具箱</span>
-    </a>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">文本与编码</div>
-        <a class="sidebar-link" href="/tools/unicode">Unicode 转换</a>
-        <a class="sidebar-link" href="/tools/json">JSON 工具</a>
-    </div>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">图片工具</div>
-        <a class="sidebar-link" href="/tools/qrcode">二维码生成</a>
-        <a class="sidebar-link" href="/tools/barcode">条形码生成</a>
-        <a class="sidebar-link active" href="/tools/convert2ico">图片转 ICO</a>
-        <a class="sidebar-link" href="/tools/ocr">OCR 文字识别</a>
-        <a class="sidebar-link" href="/tools/imgcrop">图片裁剪</a>
-    </div>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">音频工具</div>
-        <a class="sidebar-link" href="/tools/cutaudio">音频裁剪</a>
-        <a class="sidebar-link" href="/tools/extractaudio">音频提取</a>
-        <a class="sidebar-link" href="/tools/convertaudio">音频格式转换</a>
-    </div>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">视频工具</div>
-        <a class="sidebar-link" href="/tools/convertvideo">视频格式转换</a>
-    </div>
-    <div class="sidebar-cat">
-        <div class="sidebar-cat-title">其他工具</div>
-        <a class="sidebar-link" href="/tools/oddeditor">Markdown 编辑器</a>
-        <a class="sidebar-link" href="/tools/oddnotify">通知推送</a>
-    </div>
-</div>
+<div id="sidebar-container"></div>
 <div class="tools-main">
 
 
@@ -296,13 +264,6 @@
         }
     </script>
 </div>
-<script>
-    (function(){
-        document.querySelectorAll('.sidebar-link').forEach(function(a){
-            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
-        });
-    })();
-</script>
-
+<script src="static/sidebar-loader.js"></script>
 </body>
 </html>

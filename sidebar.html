@@ -1,0 +1,50 @@
+﻿<!-- 小美工具箱 - 统一侧边栏导航 -->
+<!-- 使用方法：在页面中添加 <div id="sidebar-container"></div>，然后引入此脚本 -->
+<div class="sidebar">
+    <a class="sidebar-brand" href="index.html">
+        <span class="logo">&#128295;</span>
+        <span>小美工具箱</span>
+    </a>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">文本与编码</div>
+        <a class="sidebar-link" href="unicode.html">Unicode 转换</a>
+        <a class="sidebar-link" href="json.html">JSON 工具</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">图片工具</div>
+        <a class="sidebar-link" href="qrcode.html">二维码生成</a>
+        <a class="sidebar-link" href="barcode.html">条形码生成</a>
+        <a class="sidebar-link" href="convert2ico.html">图片转 ICO</a>
+        <a class="sidebar-link" href="ocr.html">OCR 文字识别</a>
+        <a class="sidebar-link" href="imgcrop.html">图片裁剪</a>
+        <a class="sidebar-link" href="removebg.html">移除背景</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">音频工具</div>
+        <a class="sidebar-link" href="cutaudio.html">音频裁剪</a>
+        <a class="sidebar-link" href="extractaudio.html">音频提取</a>
+        <a class="sidebar-link" href="convertaudio.html">音频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">视频工具</div>
+        <a class="sidebar-link" href="convertvideo.html">视频格式转换</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">AI 工具</div>
+        <a class="sidebar-link" href="gesture.html">手势识别</a>
+        <a class="sidebar-link" href="llmtest.html">大模型测试</a>
+    </div>
+    <div class="sidebar-cat">
+        <div class="sidebar-cat-title">其他工具</div>
+        <a class="sidebar-link" href="mdeditor.html">Markdown 编辑器</a>
+        <a class="sidebar-link" href="oddnotify.html">通知推送</a>
+    </div>
+</div>
+<script>
+    // 自动高亮当前页面
+    (function(){
+        document.querySelectorAll('.sidebar-link').forEach(function(a){
+            if(a.getAttribute('href')===location.pathname) a.classList.add('active');
+        });
+    })();
+</script>
