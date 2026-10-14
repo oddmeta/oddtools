@@ -1,0 +1,517 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手势识别</title>
+    <link rel="icon" href="static/images/favicon.ico">
+    <link rel="stylesheet" href="static/tools.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <style>
+        .gesture-wrap {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .gesture-wrap { grid-template-columns: 1fr; }
+        }
+        .camera-box {
+            position: relative;
+            background: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+            box-shadow: var(--shadow);
+        }
+        .camera-box video,
+        .camera-box canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* 前置摄像头水平镜像，像镜子一样 */
+        }
+        .camera-box .placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            gap: 10px;
+        }
+        .camera-box .placeholder .icon {
+            font-size: 48px;
+            opacity: .5;
+        }
+        .camera-badge {
+            position: absolute;
+            top: 10px; left: 10px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 5;
+        }
+        .result-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .gesture-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center;
+            transition: var(--transition);
+        }
+        .gesture-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+        }
+        .gesture-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+        .gesture-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .gesture-confidence {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .hand-stats {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .hand-stats .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .hand-stats .stat-row:last-child { border-bottom: none; }
+        .gesture-list {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+        }
+        .gesture-list h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        .gesture-list .item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+        }
+        .gesture-list .item:last-child { border-bottom: none; }
+        .gesture-list .item .emoji { font-size: 18px; width: 24px; text-align: center; }
+        .gesture-list .item.detected { color: var(--primary); font-weight: 600; }
+        .ctrl-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .loading-tip {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: var(--primary-light);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--primary);
+        }
+        .error-tip {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: var(--danger-bg);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--danger);
+        }
+    </style>
+</head>
+<body class="tools-layout">
+<div id="sidebar-container"></div>
+<div class="tools-main">
+    <div class="page-header">
+        <h1>手势识别</h1>
+        <p class="subtitle">基于 MediaPipe 的实时手势识别，支持常见手势，所有处理均在本地完成</p>
+    </div>
+
+    <div class="gesture-wrap">
+        <div>
+            <div class="camera-box" id="cameraBox">
+                <div class="placeholder" id="placeholder">
+                    <span class="icon">&#128248;</span>
+                    <span>点击"启动摄像头"开始手势识别</span>
+                </div>
+                <video id="inputVideo" playsinline></video>
+                <canvas id="outputCanvas"></canvas>
+                <div class="camera-badge" id="cameraBadge" style="display:none">720P</div>
+            </div>
+
+            <div class="ctrl-bar">
+                <button class="btn btn-primary" id="btnStart">启动摄像头</button>
+                <button class="btn btn-secondary" id="btnStop" style="display:none">停止摄像头</button>
+            </div>
+            <div class="loading-tip" id="loadingTip">正在加载 MediaPipe 模型，请稍候...</div>
+            <div class="error-tip" id="errorTip"></div>
+        </div>
+
+        <div class="result-panel">
+            <div class="gesture-card" id="gestureCard">
+                <div class="gesture-icon" id="gestureIcon">&#9995;</div>
+                <div class="gesture-name" id="gestureName">未检测到手势</div>
+                <div class="gesture-confidence" id="gestureConfidence">-</div>
+            </div>
+
+            <div class="hand-stats" id="handStats">
+                <div class="stat-row"><span>检测到的手</span><span id="statHands">0</span></div>
+                <div class="stat-row"><span>置信度</span><span id="statConfidence">-</span></div>
+                <div class="stat-row"><span>摄像头分辨率</span><span id="statResolution">-</span></div>
+                <div class="stat-row"><span>FPS</span><span id="statFps">-</span></div>
+            </div>
+
+            <div class="gesture-list">
+                <h4>支持的手势</h4>
+                <div class="item" data-gesture="Open_Palm"><span class="emoji">&#9995;</span>张开手掌</div>
+                <div class="item" data-gesture="Closed_Fist"><span class="emoji">&#9994;</span>握拳</div>
+                <div class="item" data-gesture="Thumb_Up"><span class="emoji">&#128077;</span>点赞</div>
+                <div class="item" data-gesture="Thumb_Down"><span class="emoji">&#128078;</span>踩</div>
+                <div class="item" data-gesture="Victory"><span class="emoji">&#9996;</span>比耶</div>
+                <div class="item" data-gesture="Pointing_Up"><span class="emoji">&#9757;</span>指向上方</div>
+                <div class="item" data-gesture="ILoveYou"><span class="emoji">&#129311;</span>ILY / 爱你</div>
+                <div class="item" data-gesture="OK"><span class="emoji">&#128076;</span>OK</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h2>说明</h2>
+        <p>本工具基于 Google MediaPipe Hands 模型，通过浏览器摄像头实时捕捉手部关键点并进行手势分类。所有识别过程均在本地完成，视频流不会上传至任何服务器。</p>
+        <p class="highlight">支持的浏览器：Chrome、Edge、Firefox、Safari（需 HTTPS 或 localhost）。首次加载需要下载约 10MB 的模型文件。</p>
+        <h4>手势识别原理</h4>
+        <ul>
+            <li>MediaPipe Hands 检测手部 21 个关键点（landmarks），包括手腕、各指关节及指尖。</li>
+            <li>通过比较指尖与近端指间关节（PIP）到手部基准点的距离，判断每根手指的伸屈状态。</li>
+            <li>根据手指组合模式匹配预定义的手势类别。</li>
+        </ul>
+        <h4>使用提示</h4>
+        <ul>
+            <li>确保光线充足，手部在画面中清晰可见。</li>
+            <li>建议手部距离摄像头 30~60 厘米，避免过快移动。</li>
+            <li>如果摄像头无法启动，请检查浏览器权限设置。</li>
+            <li>固定分辨率为 1280×720（720P），可在画面上方角标确认。</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+(function() {
+    const videoElement = document.getElementById('inputVideo');
+    const canvasElement = document.getElementById('outputCanvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    const placeholder = document.getElementById('placeholder');
+    const cameraBadge = document.getElementById('cameraBadge');
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const loadingTip = document.getElementById('loadingTip');
+    const errorTip = document.getElementById('errorTip');
+    const gestureCard = document.getElementById('gestureCard');
+    const gestureIcon = document.getElementById('gestureIcon');
+    const gestureName = document.getElementById('gestureName');
+    const gestureConfidence = document.getElementById('gestureConfidence');
+    const statHands = document.getElementById('statHands');
+    const statConfidence = document.getElementById('statConfidence');
+    const statResolution = document.getElementById('statResolution');
+    const statFps = document.getElementById('statFps');
+
+    let hands = null;
+    let camera = null;
+    let stream = null;
+    let isRunning = false;
+    let frameCount = 0;
+    let lastFpsTime = performance.now();
+
+    const GESTURE_MAP = {
+        'Open_Palm':   { name: '张开手掌', icon: '&#9995;' },
+        'Closed_Fist': { name: '握拳',     icon: '&#9994;' },
+        'Thumb_Up':    { name: '点赞',     icon: '&#128077;' },
+        'Thumb_Down':  { name: '踩',       icon: '&#128078;' },
+        'Victory':     { name: '比耶',     icon: '&#9996;' },
+        'Pointing_Up': { name: '指向上方', icon: '&#9757;' },
+        'ILoveYou':    { name: 'ILY / 爱你', icon: '&#129311;' },
+        'OK':          { name: 'OK',       icon: '&#128076;' },
+    };
+
+    function showError(msg) {
+        errorTip.textContent = msg;
+        errorTip.style.display = 'block';
+        loadingTip.style.display = 'none';
+    }
+
+    function clearError() {
+        errorTip.style.display = 'none';
+    }
+
+    // 判断手指是否伸直（基于 fingertip 到 wrist 的距离 vs pip 到 wrist 的距离）
+    function isExtended(landmarks, tipIdx, pipIdx) {
+        const wrist = landmarks[0];
+        const tip = landmarks[tipIdx];
+        const pip = landmarks[pipIdx];
+        const tipDist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
+        const pipDist = Math.hypot(pip.x - wrist.x, pip.y - wrist.y);
+        return tipDist > pipDist * 1.05; // 1.05 倍阈值，减少抖动
+    }
+
+    function isThumbExtended(landmarks) {
+        const wrist = landmarks[0];
+        const tip = landmarks[4];
+        const ip = landmarks[3];
+        const tipDist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
+        const ipDist = Math.hypot(ip.x - wrist.x, ip.y - wrist.y);
+        return tipDist > ipDist * 1.25; // 大拇指阈值更严格，避免握拳时误判为伸直
+    }
+
+    // 判断大拇指方向（向上/向下，基于手朝向）
+    function thumbDirection(landmarks) {
+        // 简单判断：大拇指指尖相对于大拇指MCP的y值
+        const tip = landmarks[4];
+        const mcp = landmarks[2];
+        return tip.y < mcp.y ? 'up' : 'down';
+    }
+
+    // 判断 OK 手势：大拇指指尖与食指指尖距离很近
+    function isOKGesture(landmarks) {
+        const thumbTip = landmarks[4];
+        const indexTip = landmarks[8];
+        const dist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+        // 同时其他手指伸直
+        const middleExt = isExtended(landmarks, 12, 10);
+        const ringExt = isExtended(landmarks, 16, 14);
+        const pinkyExt = isExtended(landmarks, 20, 18);
+        return dist < 0.08 && middleExt && ringExt && pinkyExt;
+    }
+
+    function recognizeGesture(landmarks) {
+        const indexExt = isExtended(landmarks, 8, 6);
+        const middleExt = isExtended(landmarks, 12, 10);
+        const ringExt = isExtended(landmarks, 16, 14);
+        const pinkyExt = isExtended(landmarks, 20, 18);
+        const thumbExt = isThumbExtended(landmarks);
+
+        const extendedCount = [thumbExt, indexExt, middleExt, ringExt, pinkyExt].filter(Boolean).length;
+
+        // OK 优先判断
+        if (isOKGesture(landmarks)) return 'OK';
+
+        // 大拇指方向判断（需要其他手指都弯曲）
+        if (thumbExt && !indexExt && !middleExt && !ringExt && !pinkyExt) {
+            return thumbDirection(landmarks) === 'up' ? 'Thumb_Up' : 'Thumb_Down';
+        }
+
+        // ILY: 大拇指、食指、小指伸直，中指和无名指弯曲
+        if (thumbExt && indexExt && !middleExt && !ringExt && pinkyExt) {
+            return 'ILoveYou';
+        }
+
+        // Victory: 食指和中指伸直，其他弯曲
+        if (!thumbExt && indexExt && middleExt && !ringExt && !pinkyExt) {
+            return 'Victory';
+        }
+
+        // Pointing Up: 食指伸直，其他弯曲
+        if (!thumbExt && indexExt && !middleExt && !ringExt && !pinkyExt) {
+            return 'Pointing_Up';
+        }
+
+        // 张开手掌：5根都伸直
+        if (extendedCount === 5) {
+            return 'Open_Palm';
+        }
+
+        // 握拳：0~1根伸直（允许大拇指可能略微翘起）
+        if (extendedCount <= 1) {
+            return 'Closed_Fist';
+        }
+
+        return null;
+    }
+
+    function updateUI(gesture, confidence) {
+        if (gesture && GESTURE_MAP[gesture]) {
+            const info = GESTURE_MAP[gesture];
+            gestureIcon.innerHTML = info.icon;
+            gestureName.textContent = info.name;
+            gestureConfidence.textContent = '置信度 ' + (confidence * 100).toFixed(0) + '%';
+            gestureCard.classList.add('active');
+
+            document.querySelectorAll('.gesture-list .item').forEach(el => {
+                if (el.dataset.gesture === gesture) el.classList.add('detected');
+                else el.classList.remove('detected');
+            });
+        } else {
+            gestureIcon.innerHTML = '&#9995;';
+            gestureName.textContent = '未识别';
+            gestureConfidence.textContent = '-';
+            gestureCard.classList.remove('active');
+            document.querySelectorAll('.gesture-list .item').forEach(el => el.classList.remove('detected'));
+        }
+    }
+
+    function onResults(results) {
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        let bestGesture = null;
+        let bestConfidence = 0;
+
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                const landmarks = results.multiHandLandmarks[i];
+                const gesture = recognizeGesture(landmarks);
+                const confidence = results.multiHandedness[i] ? results.multiHandedness[i].score : 0.9;
+
+                if (gesture && confidence > bestConfidence) {
+                    bestGesture = gesture;
+                    bestConfidence = confidence;
+                }
+
+                // 绘制骨架（CSS 已翻转画布，这里直接使用原始坐标即可）
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+                    {color: '#00FF00', lineWidth: 2});
+                drawLandmarks(canvasCtx, landmarks,
+                    {color: '#FF0000', lineWidth: 1, radius: 3});
+            }
+        }
+
+        updateUI(bestGesture, bestConfidence);
+        statHands.textContent = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+        statConfidence.textContent = bestGesture ? (bestConfidence * 100).toFixed(0) + '%' : '-';
+
+        // FPS
+        frameCount++;
+        const now = performance.now();
+        if (now - lastFpsTime >= 1000) {
+            statFps.textContent = frameCount;
+            frameCount = 0;
+            lastFpsTime = now;
+        }
+
+        canvasCtx.restore();
+    }
+
+    async function startCamera() {
+        clearError();
+        btnStart.disabled = true;
+        loadingTip.style.display = 'block';
+
+        try {
+            if (!hands) {
+                hands = new Hands({locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }});
+                hands.setOptions({
+                    maxNumHands: 2,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+                hands.onResults(onResults);
+            }
+
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user'
+                },
+                audio: false
+            });
+
+            videoElement.srcObject = stream;
+            await videoElement.play();
+
+            // 获取实际分辨率
+            const w = videoElement.videoWidth;
+            const h = videoElement.videoHeight;
+            canvasElement.width = w;
+            canvasElement.height = h;
+            statResolution.textContent = w + '×' + h;
+
+            placeholder.style.display = 'none';
+            cameraBadge.style.display = 'block';
+            btnStart.style.display = 'none';
+            btnStop.style.display = 'inline-flex';
+            loadingTip.style.display = 'none';
+            isRunning = true;
+
+            // 手动发送帧循环（比 Camera 工具更可控）
+            async function loop() {
+                if (!isRunning) return;
+                if (videoElement.readyState >= 2) {
+                    await hands.send({image: videoElement});
+                }
+                requestAnimationFrame(loop);
+            }
+            loop();
+
+        } catch (err) {
+            showError('摄像头启动失败：' + err.message);
+            btnStart.disabled = false;
+            loadingTip.style.display = 'none';
+        }
+    }
+
+    function stopCamera() {
+        isRunning = false;
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+        }
+        videoElement.srcObject = null;
+        placeholder.style.display = 'flex';
+        cameraBadge.style.display = 'none';
+        btnStart.style.display = 'inline-flex';
+        btnStop.style.display = 'none';
+        btnStart.disabled = false;
+        loadingTip.style.display = 'none';
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        statHands.textContent = '0';
+        statConfidence.textContent = '-';
+        statFps.textContent = '-';
+        updateUI(null, 0);
+    }
+
+    btnStart.addEventListener('click', startCamera);
+    btnStop.addEventListener('click', stopCamera);
+})();
+</script>
+</body>
+</html>
